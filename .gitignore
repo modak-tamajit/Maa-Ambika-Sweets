@@ -58,3 +58,7 @@ $RECYCLE.BIN/
 *.pem
 *.tmp
 
+# Local Documentation
+help.md
+
+

@@ -27,12 +27,12 @@ export default function FinalCTA() {
             alignItems: 'center',
           }}
         >
-          {/* Supplied Brand Logo */}
+          {/* Supplied Brand Logo - Prominent & Crisp (Enlarged) */}
           <div
             style={{
               position: 'relative',
-              width: '80px',
-              height: '80px',
+              width: 'clamp(150px, 22vw, 190px)',
+              height: 'clamp(150px, 22vw, 190px)',
               marginBottom: '1.75rem',
             }}
           >
@@ -40,7 +40,7 @@ export default function FinalCTA() {
               src="/brand/logo.png"
               alt={BUSINESS.name.english}
               fill
-              sizes="80px"
+              sizes="(max-width: 768px) 150px, 190px"
               style={{ objectFit: 'contain' }}
             />
           </div>

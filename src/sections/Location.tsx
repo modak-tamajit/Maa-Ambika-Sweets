@@ -40,9 +40,11 @@ export default function Location() {
             <div>
               <h3
                 style={{
-                  fontSize: '1.6rem',
+                  fontSize: 'clamp(1.9rem, 2.5vw, 2.3rem)',
+                  fontWeight: 600,
                   color: 'var(--color-maroon)',
                   marginBottom: '0.35rem',
+                  lineHeight: 1.2,
                 }}
               >
                 {BUSINESS.name.english}
@@ -51,9 +53,11 @@ export default function Location() {
                 className="bengali-text"
                 style={{
                   display: 'block',
-                  fontSize: '1.05rem',
+                  fontSize: 'clamp(1.2rem, 1.6vw, 1.4rem)',
+                  fontWeight: 500,
                   color: 'var(--color-muted)',
                   marginBottom: '1.75rem',
+                  lineHeight: 1.3,
                 }}
               >
                 {BUSINESS.name.bengali}
