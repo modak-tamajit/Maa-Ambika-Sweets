@@ -13,10 +13,10 @@ export default function Preloader({ isReady, onFinish }: PreloaderProps) {
   const [isExiting, setIsExiting] = useState<boolean>(false);
 
   useEffect(() => {
-    // 2-second minimum visual presentation of brand emblem for premium opening
+    // 2.8-second visual presentation of brand emblem to allow full decoding of hero frames
     const timer = setTimeout(() => {
       setMinTimeElapsed(true);
-    }, 2000);
+    }, 2800);
 
     return () => clearTimeout(timer);
   }, []);
