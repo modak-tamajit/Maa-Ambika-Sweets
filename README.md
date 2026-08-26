@@ -1,12 +1,26 @@
-# Maa Ambika Sweets (মা অম্বিকা সুইটস) 🍯
+<p align="center">
+  <a href="https://github.com/modak-tamajit/Maa-Ambika-Sweets" target="_blank" rel="noopener noreferrer">
+    <img src="./public/brand/logo.png" alt="Maa Ambika Sweets Logo" width="160" height="160" />
+  </a>
+</p>
 
-> **A high-performance, heritage brand showcase and digital ordering web application for an authentic Bengali confectionery established in 2000 in Kalna, West Bengal.**
+<h1 align="center">Maa Ambika Sweets (মা অম্বিকা সুইটস) 🍯</h1>
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.3-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.2-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Performance](https://img.shields.io/badge/Lighthouse-98%2B-00CC66?style=for-the-badge&logo=lighthouse)](https://pagespeed.web.dev/)
-[![License](https://img.shields.io/badge/Client_Project-Production-maroon?style=for-the-badge)](#)
+<p align="center">
+  <em>Authentic Bengali Confectionery & Heritage Sweets &bull; Established 2000 &bull; Kalna, West Bengal</em>
+</p>
+
+<p align="center">
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.3-black?style=for-the-badge&logo=next.js" alt="Next.js" /></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19.2-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" /></a>
+  <a href="https://pagespeed.web.dev/"><img src="https://img.shields.io/badge/Lighthouse-98%2B-00CC66?style=for-the-badge&logo=lighthouse" alt="Lighthouse" /></a>
+  <img src="https://img.shields.io/badge/Client_Project-Production-58150F?style=for-the-badge" alt="Production Client Project" />
+</p>
+
+<p align="center">
+  <strong>A high-performance, heritage brand showcase and digital ordering web application crafted with Next.js 16, React 19, TypeScript, and modern canvas scrollytelling.</strong>
+</p>
 
 ---
 
