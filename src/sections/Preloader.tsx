@@ -10,48 +10,56 @@ interface PreloaderProps {
 
 export default function Preloader({ isReady, onFinish }: PreloaderProps) {
   const [isExiting, setIsExiting] = useState<boolean>(false);
-  const minTimeElapsedRef = useRef<boolean>(false);
-  const hasFinishedRef = useRef<boolean>(false);
+  const minTimeDoneRef = useRef<boolean>(false);
   const onFinishRef = useRef(onFinish);
 
   useEffect(() => {
     onFinishRef.current = onFinish;
   }, [onFinish]);
 
-  // Safe dismiss helper
-  const triggerExit = () => {
-    if (hasFinishedRef.current) return;
-    hasFinishedRef.current = true;
-    setIsExiting(true);
-    setTimeout(() => {
-      onFinishRef.current();
-    }, 600);
-  };
-
   useEffect(() => {
-    // 1. Enforce a minimum 1.8s branding presentation
+    let exitTimer: NodeJS.Timeout | null = null;
+
+    // Minimum 1.8-second presentation
     const minTimer = setTimeout(() => {
-      minTimeElapsedRef.current = true;
+      minTimeDoneRef.current = true;
       if (isReady) {
-        triggerExit();
+        setIsExiting(true);
+        exitTimer = setTimeout(() => {
+          onFinishRef.current();
+        }, 700);
       }
     }, 1800);
 
-    // 2. Absolute safety fallback: Never block user beyond 3.5s under any network condition
-    const maxFallbackTimer = setTimeout(() => {
-      triggerExit();
-    }, 3500);
+    // Safety fallback: Never trap user beyond 4s
+    const fallbackTimer = setTimeout(() => {
+      setIsExiting(true);
+      exitTimer = setTimeout(() => {
+        onFinishRef.current();
+      }, 700);
+    }, 4000);
 
     return () => {
       clearTimeout(minTimer);
-      clearTimeout(maxFallbackTimer);
+      clearTimeout(fallbackTimer);
+      if (exitTimer) clearTimeout(exitTimer);
     };
   }, [isReady]);
 
-  // If isReady becomes true after minimum time has already elapsed
+  // When isReady becomes true after minimum presentation time
   useEffect(() => {
-    if (isReady && minTimeElapsedRef.current) {
-      triggerExit();
+    let exitTimer: NodeJS.Timeout | null = null;
+    if (isReady && minTimeDoneRef.current) {
+      const exitStart = setTimeout(() => {
+        setIsExiting(true);
+        exitTimer = setTimeout(() => {
+          onFinishRef.current();
+        }, 700);
+      }, 0);
+      return () => {
+        clearTimeout(exitStart);
+        if (exitTimer) clearTimeout(exitTimer);
+      };
     }
   }, [isReady]);
 
@@ -66,7 +74,7 @@ export default function Preloader({ isReady, onFinish }: PreloaderProps) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s',
+        transition: 'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.7s',
         opacity: isExiting ? 0 : 1,
         visibility: isExiting ? 'hidden' : 'visible',
         pointerEvents: isExiting ? 'none' : 'auto',

@@ -21,16 +21,14 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const currentFrameRef = useRef<number>(1);
   const targetFrameRef = useRef<number>(1);
   const isRenderingRef = useRef<boolean>(false);
-  const rafIdRef = useRef<number | null>(null);
   const renderLoopRef = useRef<() => void>(() => {});
   const lastDrawnFrameRef = useRef<number>(-1);
   const scrollDirectionRef = useRef<number>(1); // 1 = down, -1 = up
   const lastScrollYRef = useRef<number>(0);
-  const onReadyCalledRef = useRef<boolean>(false);
 
   const [hasStartedScroll, setHasStartedScroll] = useState<boolean>(false);
 
-  // Helper to load and decode a single frame with priority
+  // Helper to load and decode a single frame with maximum priority
   const loadFrame = useCallback((frameNumber: number, priority: boolean = false): Promise<HTMLImageElement | null> => {
     if (frameNumber < 1 || frameNumber > TOTAL_FRAMES) return Promise.resolve(null);
     if (framesCache.current.has(frameNumber)) {
@@ -47,7 +45,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       if (priority && 'fetchPriority' in img) {
         (img as HTMLImageElement & { fetchPriority: string }).fetchPriority = 'high';
       }
-      img.src = `/hero/${frameNumber}.jpg`;
 
       const onDone = () => {
         framesCache.current.set(frameNumber, img);
@@ -55,23 +52,19 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
         resolve(img);
       };
 
+      img.onload = onDone;
+      img.onerror = () => {
+        loadingFrames.current.delete(frameNumber);
+        resolve(null);
+      };
+
+      img.src = `/hero/${frameNumber}.jpg`;
+
+      // Trigger asynchronous decode if supported
       if (typeof img.decode === 'function') {
-        img
-          .decode()
-          .then(onDone)
-          .catch(() => {
-            img.onload = onDone;
-            img.onerror = () => {
-              loadingFrames.current.delete(frameNumber);
-              resolve(null);
-            };
-          });
-      } else {
-        img.onload = onDone;
-        img.onerror = () => {
-          loadingFrames.current.delete(frameNumber);
-          resolve(null);
-        };
+        img.decode().then(onDone).catch(() => {
+          // Handled by img.onload / img.onerror fallback
+        });
       }
     });
   }, []);
@@ -80,20 +73,20 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const preloadProximityFrames = useCallback((centerFrame: number) => {
     const isDown = scrollDirectionRef.current >= 0;
     
-    // Look ahead 30 frames in scroll direction, and 10 frames behind
+    // Look ahead 25 frames in scroll direction, and 8 frames behind
     const offsets: number[] = [];
     if (isDown) {
-      for (let i = 0; i <= 30; i++) offsets.push(i);
-      for (let i = -1; i >= -10; i--) offsets.push(i);
+      for (let i = 0; i <= 25; i++) offsets.push(i);
+      for (let i = -1; i >= -8; i--) offsets.push(i);
     } else {
-      for (let i = 0; i >= -30; i--) offsets.push(i);
-      for (let i = 1; i <= 10; i++) offsets.push(i);
+      for (let i = 0; i >= -25; i--) offsets.push(i);
+      for (let i = 1; i <= 8; i++) offsets.push(i);
     }
 
     offsets.forEach((offset) => {
       const target = centerFrame + offset;
       if (target >= 1 && target <= TOTAL_FRAMES && !framesCache.current.has(target)) {
-        loadFrame(target, Math.abs(offset) <= 6);
+        loadFrame(target, Math.abs(offset) <= 5);
       }
     });
   }, [loadFrame]);
@@ -161,14 +154,14 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     lastDrawnFrameRef.current = frameNum;
   }, []);
 
-  // Continuous visual smoothing render loop via requestAnimationFrame
+  // Continuous visual smoothing render loop via requestAnimationFrame (Scroll-Velocity Responsive)
   const renderLoop = useCallback(() => {
     const target = targetFrameRef.current;
     const current = currentFrameRef.current;
 
     const diff = target - current;
     
-    // Dynamic smooth lerp
+    // Dynamic smooth lerp: directly tracks user's scroll speed with organic damping
     if (Math.abs(diff) < 0.05) {
       currentFrameRef.current = target;
     } else {
@@ -187,12 +180,11 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
 
     // Keep running until frame counter reaches target
     if (Math.abs(target - currentFrameRef.current) >= 0.01) {
-      rafIdRef.current = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
         renderLoopRef.current();
       });
     } else {
       isRenderingRef.current = false;
-      rafIdRef.current = null;
     }
   }, [drawFrame, preloadProximityFrames]);
 
@@ -203,13 +195,13 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const requestRender = useCallback(() => {
     if (!isRenderingRef.current) {
       isRenderingRef.current = true;
-      rafIdRef.current = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
         renderLoopRef.current();
       });
     }
   }, []);
 
-  // Precise Retina / HiDPI Canvas Resizing
+  // Precise HiDPI Retina Canvas Resizing
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -224,52 +216,50 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     }
   }, [drawFrame]);
 
-  // Progressive streaming: load Frame 1 first to display instantly, then buffer all remaining frames
+  // Progressive streaming: Load Frame 1 first to show immediately, then buffer the rest
   useEffect(() => {
     let isMounted = true;
 
-    const streamFrames = async () => {
-      // 1. Instantly load & render Frame 1
+    const initialLoad = async () => {
+      // 1. Load Frame 1 with high priority
       await loadFrame(1, true);
 
       if (isMounted) {
         resizeCanvas();
         drawFrame(1);
-        if (!onReadyCalledRef.current) {
-          onReadyCalledRef.current = true;
-          if (onInitialFramesReady) {
-            onInitialFramesReady();
-          }
+        if (onInitialFramesReady) {
+          onInitialFramesReady();
         }
       }
 
-      // 2. Load immediate buffer of next 15 frames with high priority
-      const immediateBatch = Array.from({ length: 15 }, (_, i) => i + 2);
-      await Promise.all(immediateBatch.map((f) => loadFrame(f, true)));
+      // 2. Load immediate scroll buffer of frames 2-30
+      const initialBuffer = Array.from({ length: 29 }, (_, i) => i + 2);
+      await Promise.all(initialBuffer.map((f) => loadFrame(f, true)));
 
-      // 3. Stream all remaining frames (17 to 250) smoothly in background
-      for (let f = 17; f <= TOTAL_FRAMES; f++) {
+      // 3. Progressively load remaining frames (31 to 250) in small controlled chunks
+      for (let f = 31; f <= TOTAL_FRAMES; f += 5) {
         if (!isMounted) break;
-        if (!framesCache.current.has(f)) {
-          loadFrame(f, false);
-          if (f % 6 === 0) {
-            await new Promise((r) => setTimeout(r, 16));
+        const chunk = [];
+        for (let j = 0; j < 5 && f + j <= TOTAL_FRAMES; j++) {
+          if (!framesCache.current.has(f + j)) {
+            chunk.push(loadFrame(f + j, false));
           }
         }
+        if (chunk.length > 0) {
+          await Promise.all(chunk);
+        }
+        await new Promise((r) => setTimeout(r, 20));
       }
     };
 
-    streamFrames();
+    initialLoad();
 
     return () => {
       isMounted = false;
-      if (rafIdRef.current) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
     };
   }, [loadFrame, resizeCanvas, drawFrame, onInitialFramesReady]);
 
-  // Scroll listener with velocity & direction tracking across mobile, tablet, and laptop
+  // Scroll listener with velocity & direction tracking
   useEffect(() => {
     const handleScroll = () => {
       const container = containerRef.current;
@@ -302,7 +292,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     window.addEventListener('resize', resizeCanvas, { passive: true });
     window.addEventListener('orientationchange', resizeCanvas, { passive: true });
 
-    // Container resize observer
+    // Also use ResizeObserver for dynamic container monitoring
     let resizeObserver: ResizeObserver | null = null;
     if (containerRef.current && typeof ResizeObserver !== 'undefined') {
       resizeObserver = new ResizeObserver(() => {
@@ -318,9 +308,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
-      if (rafIdRef.current) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
     };
   }, [hasStartedScroll, requestRender, resizeCanvas]);
 
@@ -330,8 +317,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       ref={containerRef}
       style={{
         position: 'relative',
-        height: '380vh',
-        minHeight: '100vh',
+        height: '380vh', // Calibrated 380vh scroll height for smooth, responsive 250-frame pacing
         backgroundColor: 'var(--color-cream)',
       }}
     >
