@@ -42,9 +42,9 @@ export default function Celebrations() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: 'clamp(1.5rem, 3vw, 2.25rem)',
-            marginBottom: '3rem',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
+            gap: 'clamp(1.25rem, 3vw, 2.25rem)',
+            marginBottom: 'clamp(2rem, 4vw, 3rem)',
           }}
         >
           {occasions.map((item) => (
@@ -60,7 +60,7 @@ export default function Celebrations() {
             >
               <h3
                 style={{
-                  fontSize: '1.35rem',
+                  fontSize: '1.3rem',
                   color: 'var(--color-maroon)',
                   marginBottom: '0.2rem',
                 }}
@@ -73,7 +73,7 @@ export default function Celebrations() {
                   display: 'block',
                   fontSize: '0.9rem',
                   color: 'var(--color-muted)',
-                  marginBottom: '1rem',
+                  marginBottom: '0.85rem',
                 }}
               >
                 {item.bengali}
@@ -98,17 +98,18 @@ export default function Celebrations() {
             backgroundColor: 'var(--color-cream-light)',
             border: '1px solid var(--color-border)',
             borderRadius: 'var(--radius-md)',
-            padding: 'clamp(2rem, 4vw, 3rem)',
+            padding: 'clamp(1.5rem, 4vw, 3rem)',
             textAlign: 'center',
             maxWidth: '800px',
             margin: '0 auto',
+            width: '100%',
           }}
         >
           <h3
             style={{
-              fontSize: '1.5rem',
+              fontSize: 'clamp(1.25rem, 2.5vw, 1.5rem)',
               color: 'var(--color-maroon)',
-              marginBottom: '0.75rem',
+              marginBottom: '0.65rem',
             }}
           >
             Planning a Bulk or Festive Order?
@@ -118,12 +119,12 @@ export default function Celebrations() {
               fontSize: '0.95rem',
               lineHeight: 1.6,
               color: 'var(--color-text-light)',
-              marginBottom: '1.5rem',
+              marginBottom: '1.25rem',
             }}
           >
             We recommend placing celebratory and bulk sweet orders 24–48 hours in advance so our confectioners can prepare your custom batch at peak freshness.
           </p>
-          <a href="#enquiry" className="btn-primary">
+          <a href="#enquiry" className="btn-primary" style={{ minHeight: '44px' }}>
             Request Bulk Quotation
           </a>
         </div>

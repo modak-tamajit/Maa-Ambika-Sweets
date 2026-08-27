@@ -1,7 +1,6 @@
 import React from 'react';
 import { products } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
-import { BUSINESS } from '@/config/business';
 
 export default function ProductCatalogue() {
   const hasProducts = products.length > 0;
@@ -29,7 +28,7 @@ export default function ProductCatalogue() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))',
               gap: 'clamp(1.25rem, 2.5vw, 2rem)',
             }}
           >
@@ -44,7 +43,7 @@ export default function ProductCatalogue() {
               maxWidth: '680px',
               margin: '0 auto',
               textAlign: 'center',
-              padding: 'clamp(2rem, 5vw, 3.5rem)',
+              padding: 'clamp(1.5rem, 5vw, 3.5rem)',
               backgroundColor: 'var(--color-surface)',
             }}
           >
@@ -70,13 +69,14 @@ export default function ProductCatalogue() {
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                aria-hidden="true"
               >
                 <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
               </svg>
             </div>
             <h3
               style={{
-                fontSize: '1.4rem',
+                fontSize: '1.35rem',
                 color: 'var(--color-maroon)',
                 marginBottom: '0.75rem',
               }}
@@ -105,7 +105,7 @@ export default function ProductCatalogue() {
             >
               প্রতিদিন সকাল ও সন্ধ্যায় তৈরি হয় টাটকা মিষ্টি। বিশেষ অর্ডার ও দৈনিক মিষ্টির তালিকা জানতে আমাদের সাথে যোগাযোগ করুন।
             </p>
-            <a href="#enquiry" className="btn-primary">
+            <a href="#enquiry" className="btn-primary" style={{ minHeight: '44px' }}>
               Enquire About Availability
             </a>
           </div>

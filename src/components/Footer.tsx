@@ -10,37 +10,139 @@ export default function Footer() {
   return (
     <footer
       style={{
-        backgroundColor: 'var(--color-cream)',
-        borderTop: '1px solid var(--color-border)',
-        paddingTop: 'clamp(4rem, 6vw, 5.5rem)',
-        paddingBottom: '2.5rem',
+        backgroundColor: 'var(--color-maroon-dark)',
+        color: '#E8D8C0',
+        paddingTop: 'clamp(3rem, 6vw, 5rem)',
+        paddingBottom: 'clamp(2rem, 4vw, 3rem)',
+        borderTop: '1px solid rgba(214, 166, 100, 0.2)',
       }}
     >
       <div className="container">
-        {/* Main Footer Grid */}
+        {/* Compliance & Registration Badges */}
+        <div
+          style={{
+            paddingBottom: '2.5rem',
+            marginBottom: '2.5rem',
+            borderBottom: '1px solid rgba(214, 166, 100, 0.15)',
+          }}
+        >
+          <span
+            style={{
+              display: 'block',
+              textAlign: 'center',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.15em',
+              color: 'var(--color-gold)',
+              marginBottom: '1.25rem',
+              opacity: 0.9,
+            }}
+          >
+            Registered &amp; Licensed Enterprise
+          </span>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
+              gap: 'clamp(1rem, 2.5vw, 1.75rem)',
+              alignItems: 'stretch',
+            }}
+          >
+            {licenses.map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  padding: '1rem 0.85rem',
+                  backgroundColor: 'rgba(0, 0, 0, 0.22)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid rgba(214, 166, 100, 0.15)',
+                  minWidth: 0,
+                }}
+              >
+                {/* Official Compliance Logo */}
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    maxWidth: item.id === 'trade' ? '85px' : item.id === 'msme' ? '210px' : '180px',
+                    height: '42px',
+                    marginBottom: '0.65rem',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Image
+                    src={item.logo}
+                    alt={`${item.authority} Official Emblem`}
+                    fill
+                    sizes="220px"
+                    style={{
+                      objectFit: 'contain',
+                      objectPosition: 'center',
+                    }}
+                  />
+                </div>
+
+                <span
+                  style={{
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    color: 'var(--color-gold)',
+                    lineHeight: 1.25,
+                    marginBottom: '0.2rem',
+                  }}
+                >
+                  {item.authority}
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    color: '#C4B098',
+                    lineHeight: 1.35,
+                    marginBottom: '0.35rem',
+                  }}
+                >
+                  {item.subtitle}
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    color: '#9C8874',
+                    fontFamily: 'monospace',
+                    letterSpacing: '0.02em',
+                    marginTop: 'auto',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {item.registrationNumber}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Footer Content */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: 'clamp(2rem, 4vw, 3.5rem)',
-            marginBottom: 'clamp(2.5rem, 5vw, 4rem)',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+            gap: 'clamp(2rem, 4vw, 3rem)',
+            paddingBottom: '2.5rem',
           }}
         >
-          {/* Column 1: Brand identity */}
+          {/* Brand Col */}
           <div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.85rem',
-                marginBottom: '1rem',
-              }}
-            >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.85rem' }}>
               <div
                 style={{
                   position: 'relative',
-                  width: '92px',
-                  height: '92px',
+                  width: '48px',
+                  height: '48px',
                   flexShrink: 0,
                 }}
               >
@@ -48,7 +150,7 @@ export default function Footer() {
                   src="/brand/logo.png"
                   alt={BUSINESS.name.english}
                   fill
-                  sizes="92px"
+                  sizes="48px"
                   style={{ objectFit: 'contain' }}
                 />
               </div>
@@ -57,10 +159,10 @@ export default function Footer() {
                   style={{
                     display: 'block',
                     fontFamily: 'var(--font-heading)',
-                    fontSize: '1.65rem',
+                    fontSize: '1.25rem',
                     fontWeight: 600,
-                    color: 'var(--color-maroon)',
-                    lineHeight: 1.1,
+                    color: 'var(--color-gold)',
+                    lineHeight: 1.15,
                   }}
                 >
                   {BUSINESS.name.english}
@@ -69,10 +171,10 @@ export default function Footer() {
                   className="bengali-text"
                   style={{
                     display: 'block',
-                    fontSize: '1.05rem',
-                    color: 'var(--color-muted)',
-                    lineHeight: 1.1,
-                    marginTop: '0.15rem',
+                    fontSize: '0.88rem',
+                    color: '#E8D4B0',
+                    lineHeight: 1.15,
+                    marginTop: '0.1rem',
                   }}
                 >
                   {BUSINESS.name.bengali}
@@ -83,263 +185,136 @@ export default function Footer() {
             <p
               className="bengali-text"
               style={{
-                fontSize: '1.05rem',
-                color: 'var(--color-maroon)',
-                fontWeight: 500,
-                marginBottom: '0.5rem',
+                fontSize: '0.92rem',
+                color: 'var(--color-gold)',
+                fontStyle: 'italic',
+                marginBottom: '0.65rem',
               }}
             >
-              {BUSINESS.tagline.bengali}
+              &ldquo;{BUSINESS.tagline.bengali}&rdquo;
             </p>
-
             <p
               style={{
                 fontSize: '0.88rem',
+                color: '#C4B098',
                 lineHeight: 1.6,
-                color: 'var(--color-text-light)',
+              }}
+            >
+              Dedicated to pure, authentic Bengali sweets crafted fresh in Rameswarpur, Kalna since {BUSINESS.established}.
+            </p>
+          </div>
+
+          {/* Quick Links */}
+          <div>
+            <span
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                color: 'var(--color-gold)',
                 marginBottom: '1rem',
               }}
             >
-              Traditional Bengali sweets hand-crafted in Kalna, Purba Bardhaman with pure ingredients and heritage recipes since {BUSINESS.established}.
-            </p>
-
-            <span
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                letterSpacing: '0.15em',
-                textTransform: 'uppercase',
-                color: 'var(--color-gold-muted)',
-              }}
-            >
-              Established {BUSINESS.established}
+              Navigation
             </span>
-          </div>
-
-          {/* Column 2: Navigation */}
-          <div>
-            <h4
-              style={{
-                fontSize: '1.1rem',
-                fontWeight: 600,
-                color: 'var(--color-maroon)',
-                marginBottom: '1.25rem',
-              }}
-            >
-              Quick Links
-            </h4>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              {[
-                { label: 'Home', href: '#hero' },
-                { label: 'Our Story', href: '#story' },
-                { label: 'Sweet Catalogue', href: '#catalogue' },
-                { label: 'Celebrations & Bulk', href: '#celebrations' },
-                { label: 'Shop Location', href: '#location' },
-                { label: 'Send Enquiry', href: '#enquiry' },
-              ].map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    style={{
-                      fontSize: '0.9rem',
-                      color: 'var(--color-text-light)',
-                      transition: 'color var(--transition-fast)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'var(--color-maroon)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'var(--color-text-light)';
-                    }}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <li>
+                <Link href="#hero" style={{ fontSize: '0.9rem', color: '#D6C4AE', transition: 'color 0.2s' }}>
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link href="#story" style={{ fontSize: '0.9rem', color: '#D6C4AE', transition: 'color 0.2s' }}>
+                  Our Story
+                </Link>
+              </li>
+              <li>
+                <Link href="#catalogue" style={{ fontSize: '0.9rem', color: '#D6C4AE', transition: 'color 0.2s' }}>
+                  Sweet Selections
+                </Link>
+              </li>
+              <li>
+                <Link href="#celebrations" style={{ fontSize: '0.9rem', color: '#D6C4AE', transition: 'color 0.2s' }}>
+                  Bulk &amp; Celebrations
+                </Link>
+              </li>
+              <li>
+                <Link href="#location" style={{ fontSize: '0.9rem', color: '#D6C4AE', transition: 'color 0.2s' }}>
+                  Shop Location
+                </Link>
+              </li>
+              <li>
+                <Link href="#enquiry" style={{ fontSize: '0.9rem', color: '#D6C4AE', transition: 'color 0.2s' }}>
+                  Send Enquiry
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Column 3: Contact details */}
+          {/* Contact Details */}
           <div>
-            <h4
+            <span
               style={{
-                fontSize: '1.1rem',
+                display: 'block',
+                fontSize: '0.85rem',
                 fontWeight: 600,
-                color: 'var(--color-maroon)',
-                marginBottom: '1.25rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                color: 'var(--color-gold)',
+                marginBottom: '1rem',
               }}
             >
-              Contact & Hours
-            </h4>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.9rem' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', display: 'block' }}>Address</span>
-                <p style={{ color: 'var(--color-text-light)', lineHeight: 1.4 }}>
-                  {BUSINESS.address.street}, {BUSINESS.address.locality}, {BUSINESS.address.city}, {BUSINESS.address.state} {BUSINESS.address.pincode}
-                </p>
-              </div>
-
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', display: 'block' }}>Phone / WhatsApp</span>
-                <p style={{ color: 'var(--color-text)' }}>
-                  {BUSINESS.phone} / {BUSINESS.whatsapp}
-                </p>
-              </div>
-
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', display: 'block' }}>Hours</span>
-                <p style={{ color: 'var(--color-text-light)' }}>
-                  8:00 AM – 10:00 PM (Daily)
-                </p>
-              </div>
-
-              <div style={{ marginTop: '0.25rem' }}>
+              Direct Contact
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.9rem', color: '#D6C4AE' }}>
+              <p>
+                <strong style={{ color: '#E8D8C0' }}>Phone / WhatsApp:</strong><br />
+                <a href={`tel:${BUSINESS.phone}`} style={{ color: 'var(--color-gold)', textDecoration: 'underline' }}>
+                  {BUSINESS.phone}
+                </a>
+              </p>
+              <p>
+                <strong style={{ color: '#E8D8C0' }}>Email:</strong><br />
+                <a href={`mailto:${BUSINESS.email}`} style={{ color: '#D6C4AE' }}>
+                  {BUSINESS.email}
+                </a>
+              </p>
+              <p>
+                <strong style={{ color: '#E8D8C0' }}>Instagram:</strong><br />
                 <a
                   href={BUSINESS.instagram}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    color: 'var(--color-maroon)',
-                    fontWeight: 500,
-                    fontSize: '0.85rem',
-                  }}
+                  style={{ color: 'var(--color-gold)', textDecoration: 'underline' }}
                 >
-                  <span>Instagram</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="7" y1="17" x2="17" y2="7" />
-                    <polyline points="7 7 17 7 17 17" />
-                  </svg>
+                  @{BUSINESS.instagramHandle}
                 </a>
-              </div>
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Registered & Licensed Section — Trust & Compliance */}
+        {/* Bottom copyright */}
         <div
           style={{
-            paddingTop: '2rem',
-            paddingBottom: '2rem',
-            borderTop: '1px solid var(--color-border-subtle)',
-            borderBottom: '1px solid var(--color-border-subtle)',
-            marginBottom: '2rem',
-          }}
-        >
-          <span
-            style={{
-              display: 'block',
-              fontSize: '0.7rem',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.15em',
-              color: 'var(--color-gold-muted)',
-              marginBottom: '1rem',
-              textAlign: 'center',
-            }}
-          >
-            Registered & Licensed Business
-          </span>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: 'clamp(1.5rem, 3vw, 2.5rem)',
-              textAlign: 'center',
-              alignItems: 'center',
-            }}
-          >
-            {licenses.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: 'transparent',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                }}
-              >
-                {/* Official Transparent Logo - Enlarged & Crisp */}
-                <div
-                  style={{
-                    position: 'relative',
-                    width: item.id === 'trade' ? '85px' : item.id === 'msme' ? '240px' : '200px',
-                    height: item.id === 'trade' ? '110px' : item.id === 'msme' ? '105px' : '90px',
-                    marginBottom: '0.6rem',
-                  }}
-                >
-                  <Image
-                    src={item.logo}
-                    alt={`${item.authority} Official Emblem`}
-                    fill
-                    sizes="(max-width: 768px) 180px, 250px"
-                    style={{ objectFit: 'contain' }}
-                  />
-                </div>
-
-                <span
-                  style={{
-                    display: 'block',
-                    fontFamily: 'var(--font-heading)',
-                    fontSize: '1.25rem',
-                    fontWeight: 600,
-                    color: 'var(--color-maroon)',
-                    lineHeight: 1.15,
-                  }}
-                >
-                  {item.authority}
-                </span>
-                <span
-                  style={{
-                    display: 'block',
-                    fontSize: '0.85rem',
-                    color: 'var(--color-muted)',
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {item.subtitle}
-                </span>
-                <span
-                  style={{
-                    display: 'block',
-                    fontSize: '0.82rem',
-                    color: 'var(--color-text-light)',
-                    fontFamily: 'monospace',
-                    letterSpacing: '0.04em',
-                    marginTop: '0.15rem',
-                  }}
-                >
-                  {item.registrationNumber}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Bottom copyright & attribution */}
-        <div
-          style={{
+            paddingTop: '1.75rem',
+            borderTop: '1px solid rgba(214, 166, 100, 0.15)',
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '1rem',
-            fontSize: '0.8rem',
-            color: 'var(--color-muted)',
+            fontSize: '0.82rem',
+            color: '#A89480',
           }}
         >
-          <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
+          <p>
             &copy; {currentYear} {BUSINESS.name.english} ({BUSINESS.name.bengali}). All rights reserved.
           </p>
-
-          <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
-            Serving authentic sweetness since {BUSINESS.established} &bull; Kalna, West Bengal
+          <p>
+            Rameswarpur, Kalna, Purba Bardhaman, West Bengal 713409
           </p>
         </div>
       </div>

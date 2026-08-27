@@ -22,8 +22,8 @@ export default function Location() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: 'clamp(2rem, 4vw, 3.5rem)',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+            gap: 'clamp(1.5rem, 4vw, 3.5rem)',
             alignItems: 'stretch',
           }}
         >
@@ -40,7 +40,7 @@ export default function Location() {
             <div>
               <h3
                 style={{
-                  fontSize: 'clamp(1.9rem, 2.5vw, 2.3rem)',
+                  fontSize: 'clamp(1.6rem, 2.5vw, 2.3rem)',
                   fontWeight: 600,
                   color: 'var(--color-maroon)',
                   marginBottom: '0.35rem',
@@ -53,10 +53,10 @@ export default function Location() {
                 className="bengali-text"
                 style={{
                   display: 'block',
-                  fontSize: 'clamp(1.2rem, 1.6vw, 1.4rem)',
+                  fontSize: 'clamp(1.1rem, 1.6vw, 1.4rem)',
                   fontWeight: 500,
                   color: 'var(--color-muted)',
-                  marginBottom: '1.75rem',
+                  marginBottom: '1.5rem',
                   lineHeight: 1.3,
                 }}
               >
@@ -64,7 +64,7 @@ export default function Location() {
               </span>
 
               {/* Address block */}
-              <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ marginBottom: '1.25rem' }}>
                 <span
                   style={{
                     fontSize: '0.75rem',
@@ -80,7 +80,7 @@ export default function Location() {
                 </span>
                 <p
                   style={{
-                    fontSize: '1rem',
+                    fontSize: '0.95rem',
                     color: 'var(--color-text)',
                     lineHeight: 1.5,
                   }}
@@ -90,7 +90,7 @@ export default function Location() {
               </div>
 
               {/* Hours block */}
-              <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ marginBottom: '1.25rem' }}>
                 <span
                   style={{
                     fontSize: '0.75rem',
@@ -129,7 +129,7 @@ export default function Location() {
               </div>
 
               {/* Coordinates info */}
-              <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ marginBottom: '1.25rem' }}>
                 <span
                   style={{
                     fontSize: '0.75rem',
@@ -161,7 +161,7 @@ export default function Location() {
                 display: 'flex',
                 flexWrap: 'wrap',
                 gap: '0.75rem',
-                marginTop: '1.5rem',
+                marginTop: '1.25rem',
                 paddingTop: '1.25rem',
                 borderTop: '1px solid var(--color-border-subtle)',
               }}
@@ -171,7 +171,7 @@ export default function Location() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary"
-                style={{ flex: '1 1 auto' }}
+                style={{ flex: '1 1 140px', minHeight: '44px' }}
               >
                 Get Directions
               </a>
@@ -180,7 +180,7 @@ export default function Location() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-secondary"
-                style={{ flex: '1 1 auto' }}
+                style={{ flex: '1 1 140px', minHeight: '44px' }}
               >
                 View Listing
               </a>
@@ -193,9 +193,10 @@ export default function Location() {
             style={{
               padding: 0,
               overflow: 'hidden',
-              minHeight: '380px',
+              minHeight: 'clamp(280px, 40vw, 380px)',
               backgroundColor: 'var(--color-cream-dark)',
               border: '1px solid var(--color-border)',
+              display: 'flex',
             }}
           >
             <iframe
@@ -205,8 +206,10 @@ export default function Location() {
               height="100%"
               style={{
                 border: 0,
-                minHeight: '380px',
+                minHeight: 'clamp(280px, 40vw, 380px)',
+                width: '100%',
                 display: 'block',
+                flexGrow: 1,
               }}
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"

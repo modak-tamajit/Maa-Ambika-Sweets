@@ -1,35 +1,37 @@
-  :root {
-    --color-cream: #F8EED9;
-    --color-cream-light: #FAF4E5;
-    --color-cream-dark: #ECE0C7;
-    --color-maroon: #58150F;
-    --color-maroon-dark: #3F0E0A;
-    --color-maroon-light: #6E1F18;
-    --color-gold: #D6A664;
-    --color-gold-muted: #B88540;
-    --color-text: #2A0E10;
-    --color-text-light: #522729;
-    --color-muted: #825E50;
-    --color-surface: #FAF4E5;
-    --color-border: #E8D8C0;
-    --color-border-subtle: #EFE4D2;
-    --color-white: #FAF4E5;
+:root {
+  --color-cream: #F8EED9;
+  --color-cream-light: #FAF4E5;
+  --color-cream-dark: #ECE0C7;
+  --color-maroon: #58150F;
+  --color-maroon-dark: #3F0E0A;
+  --color-maroon-light: #6E1F18;
+  --color-gold: #D6A664;
+  --color-gold-muted: #B88540;
+  --color-text: #2A0E10;
+  --color-text-light: #522729;
+  --color-muted: #825E50;
+  --color-surface: #FAF4E5;
+  --color-border: #E8D8C0;
+  --color-border-subtle: #EFE4D2;
+  --color-white: #FAF4E5;
 
-    --font-heading: 'Cormorant Garamond', Georgia, serif;
-    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-bengali: 'Noto Sans Bengali', 'SolaimanLipi', sans-serif;
+  --font-heading: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-bengali: 'Noto Sans Bengali', 'SolaimanLipi', sans-serif;
 
-    --container-max-width: 1200px;
-    --container-padding: clamp(1.25rem, 5vw, 2.5rem);
-    
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    
-    --transition-fast: 0.2s ease;
-    --transition-normal: 0.3s ease;
-    --transition-slow: 0.5s ease;
-  }
+  --container-max-width: 1200px;
+  --container-padding: clamp(1.25rem, 5vw, 2.5rem);
+  
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -44,14 +46,19 @@ html {
   background-color: var(--color-cream);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--color-cream);
   color: var(--color-text);
   line-height: 1.6;
   overflow-x: hidden;
+  position: relative;
+  width: 100%;
 }
 
 /* Typography styles */
@@ -60,17 +67,23 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 500;
   color: var(--color-maroon);
   line-height: 1.25;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
 .bengali-text {
   font-family: var(--font-bengali);
   letter-spacing: normal;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
 p {
   font-size: clamp(0.95rem, 1.1vw, 1.05rem);
   color: var(--color-text-light);
   font-weight: 400;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
 a {
@@ -86,7 +99,7 @@ button {
   background: none;
 }
 
-img {
+img, svg, video, canvas {
   max-width: 100%;
   height: auto;
   display: block;
@@ -103,15 +116,15 @@ img {
 }
 
 .section-padding {
-  padding-top: clamp(4rem, 8vw, 7.5rem);
-  padding-bottom: clamp(4rem, 8vw, 7.5rem);
+  padding-top: clamp(3.5rem, 7vw, 7.5rem);
+  padding-bottom: clamp(3.5rem, 7vw, 7.5rem);
 }
 
 /* Section Header */
 .section-header {
   text-align: center;
   max-width: 680px;
-  margin: 0 auto clamp(2.5rem, 5vw, 4rem);
+  margin: 0 auto clamp(2rem, 4.5vw, 4rem);
 }
 
 .section-tag {
@@ -126,23 +139,24 @@ img {
 }
 
 .section-title {
-  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-size: clamp(1.85rem, 3.5vw, 3rem);
   margin-bottom: 0.75rem;
   color: var(--color-maroon);
 }
 
 .section-subtitle {
-  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  font-size: clamp(0.95rem, 1.25vw, 1.15rem);
   color: var(--color-muted);
   line-height: 1.6;
 }
 
-/* Buttons */
+/* Buttons — Touch friendly with minimum 44px tap target */
 .btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.85rem 1.75rem;
+  min-height: 44px;
+  padding: 0.75rem 1.6rem;
   background-color: var(--color-maroon);
   color: var(--color-cream);
   font-family: var(--font-body);
@@ -153,6 +167,7 @@ img {
   border: 1px solid var(--color-maroon);
   transition: all var(--transition-fast);
   text-align: center;
+  touch-action: manipulation;
 }
 
 .btn-primary:hover {
@@ -165,7 +180,8 @@ img {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.85rem 1.75rem;
+  min-height: 44px;
+  padding: 0.75rem 1.6rem;
   background-color: transparent;
   color: var(--color-maroon);
   font-family: var(--font-body);
@@ -175,6 +191,8 @@ img {
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   transition: all var(--transition-fast);
+  text-align: center;
+  touch-action: manipulation;
 }
 
 .btn-secondary:hover {
@@ -187,16 +205,32 @@ img {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  padding: clamp(1.5rem, 3vw, 2.25rem);
+  padding: clamp(1.25rem, 3vw, 2.25rem);
   transition: border-color var(--transition-fast);
+  width: 100%;
 }
 
 .card-base:hover {
   border-color: var(--color-border);
 }
 
+/* Hero Sticky Viewport with dynamic dvh and vh fallback */
+.hero-sticky-viewport {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-cream);
+  overflow: hidden;
+}
+
 /* Accessibility focus styles */
 :focus-visible {
-  outline: 2px solid var(--color-maroon);
+  outline: 2px solid var(--color-gold);
   outline-offset: 3px;
 }

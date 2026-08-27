@@ -28,7 +28,7 @@ export default function GoogleReviews() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
               gap: 'clamp(1.25rem, 2.5vw, 2rem)',
               marginBottom: '2.5rem',
             }}
@@ -64,6 +64,7 @@ export default function GoogleReviews() {
                       fill={i < rev.rating ? 'currentColor' : 'none'}
                       stroke="currentColor"
                       strokeWidth="1.5"
+                      aria-hidden="true"
                     >
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                     </svg>
@@ -91,6 +92,7 @@ export default function GoogleReviews() {
                     paddingTop: '0.75rem',
                     borderTop: '1px solid var(--color-border-subtle)',
                     marginTop: 'auto',
+                    gap: '0.5rem',
                   }}
                 >
                   <span
@@ -106,6 +108,7 @@ export default function GoogleReviews() {
                     style={{
                       fontSize: '0.8rem',
                       color: 'var(--color-muted)',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     {rev.relativeTimeDescription}
@@ -121,7 +124,7 @@ export default function GoogleReviews() {
               maxWidth: '640px',
               margin: '0 auto 2.5rem',
               textAlign: 'center',
-              padding: 'clamp(2rem, 4vw, 3rem)',
+              padding: 'clamp(1.5rem, 4vw, 3rem)',
               backgroundColor: 'var(--color-cream-light)',
             }}
           >
@@ -153,6 +156,7 @@ export default function GoogleReviews() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.5rem',
+                minHeight: '44px',
               }}
             >
               <span>View Reviews on Google Maps</span>
@@ -165,6 +169,7 @@ export default function GoogleReviews() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                aria-hidden="true"
               >
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                 <polyline points="15 3 21 3 21 9" />
@@ -180,10 +185,14 @@ export default function GoogleReviews() {
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              fontSize: '0.85rem',
+              fontSize: '0.88rem',
               color: 'var(--color-muted)',
               textDecoration: 'underline',
               letterSpacing: '0.02em',
+              display: 'inline-flex',
+              alignItems: 'center',
+              minHeight: '44px',
+              padding: '0.5rem',
             }}
           >
             Leave a review on Google Maps &rarr;

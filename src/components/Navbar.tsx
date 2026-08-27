@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { BUSINESS } from '@/config/business';
@@ -9,12 +9,39 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Scroll listener for sticky header elevation
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 30);
+      setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Close mobile menu on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen]);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [mobileMenuOpen]);
+
+  const closeMenu = useCallback(() => {
+    setMobileMenuOpen(false);
   }, []);
 
   const navLinks = [
@@ -38,8 +65,8 @@ export default function Navbar() {
         borderBottom: isScrolled
           ? '1px solid rgba(214, 166, 100, 0.35)'
           : '1px solid rgba(214, 166, 100, 0.15)',
-        transition: 'border-color var(--transition-normal), box-shadow var(--transition-normal)',
-        boxShadow: isScrolled ? '0 4px 25px rgba(20, 4, 5, 0.35)' : 'none',
+        transition: 'border-color var(--transition-normal), box-shadow var(--transition-normal), background-color var(--transition-normal)',
+        boxShadow: isScrolled ? '0 4px 25px rgba(20, 4, 5, 0.4)' : 'none',
       }}
     >
       <div
@@ -47,55 +74,61 @@ export default function Navbar() {
           width: '100%',
           maxWidth: '1440px',
           margin: '0 auto',
-          paddingLeft: 'clamp(1.5rem, 4vw, 3.5rem)',
-          paddingRight: 'clamp(1.5rem, 4vw, 3.5rem)',
+          paddingLeft: 'clamp(1rem, 4vw, 3.5rem)',
+          paddingRight: 'clamp(1rem, 4vw, 3.5rem)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          height: '5.75rem',
+          height: 'clamp(4.5rem, 8vw, 5.75rem)',
         }}
       >
         {/* Brand Logo & Name */}
         <Link
           href="#hero"
+          onClick={closeMenu}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '1.15rem',
+            gap: 'clamp(0.6rem, 2vw, 1.15rem)',
             textDecoration: 'none',
+            minWidth: 0,
+            maxWidth: 'calc(100% - 56px)',
           }}
-          aria-label={`${BUSINESS.name.english} Home`}
+          aria-label={`${BUSINESS.name.english} (${BUSINESS.name.bengali}) Home`}
         >
-          {/* Prominent Brand Emblem */}
+          {/* Prominent Brand Emblem with Fluid Scaling */}
           <div
             style={{
               position: 'relative',
-              width: '72px',
-              height: '72px',
+              width: 'clamp(46px, 11vw, 68px)',
+              height: 'clamp(46px, 11vw, 68px)',
               flexShrink: 0,
-              filter: 'drop-shadow(0 3px 8px rgba(0, 0, 0, 0.35))',
+              filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35))',
             }}
           >
             <Image
               src="/brand/logo.png"
               alt={BUSINESS.name.english}
               fill
-              sizes="72px"
+              sizes="(max-width: 640px) 52px, 72px"
               style={{ objectFit: 'contain' }}
               priority
             />
           </div>
-          <div>
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
             <span
               style={{
                 display: 'block',
                 fontFamily: 'var(--font-heading)',
-                fontSize: '1.75rem',
+                fontSize: 'clamp(1.15rem, 3.8vw, 1.75rem)',
                 fontWeight: 600,
                 color: 'var(--color-gold)',
                 lineHeight: 1.1,
-                letterSpacing: '0.025em',
+                letterSpacing: '0.02em',
                 textShadow: '0 1px 3px rgba(0, 0, 0, 0.4)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
               {BUSINESS.name.english}
@@ -104,11 +137,14 @@ export default function Navbar() {
               className="bengali-text"
               style={{
                 display: 'block',
-                fontSize: '1.05rem',
+                fontSize: 'clamp(0.82rem, 2.4vw, 1.05rem)',
                 color: '#E8D4B0',
                 lineHeight: 1.15,
-                marginTop: '0.2rem',
+                marginTop: '0.15rem',
                 opacity: 0.95,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
               {BUSINESS.name.bengali}
@@ -121,9 +157,10 @@ export default function Navbar() {
           style={{
             display: 'none',
             alignItems: 'center',
-            gap: '2.25rem',
+            gap: 'clamp(1.25rem, 2vw, 2.25rem)',
           }}
           className="desktop-nav"
+          aria-label="Primary Desktop Navigation"
         >
           {navLinks.map((link) => (
             <Link
@@ -135,6 +172,7 @@ export default function Navbar() {
                 color: '#F4E5CC',
                 letterSpacing: '0.03em',
                 transition: 'color var(--transition-fast)',
+                padding: '0.5rem 0',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = 'var(--color-gold)';
@@ -148,21 +186,17 @@ export default function Navbar() {
           ))}
           <a
             href="#enquiry"
+            className="btn-primary"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
               padding: '0.65rem 1.4rem',
               backgroundColor: 'var(--color-gold)',
               color: 'var(--color-maroon-dark)',
-              fontFamily: 'var(--font-body)',
               fontSize: '0.88rem',
               fontWeight: 600,
               letterSpacing: '0.05em',
-              borderRadius: 'var(--radius-sm)',
               border: '1px solid var(--color-gold)',
-              transition: 'all var(--transition-fast)',
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+              minHeight: 'auto',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = '#E5B874';
@@ -179,20 +213,29 @@ export default function Navbar() {
           </a>
         </nav>
 
-        {/* Mobile Menu Toggle Button */}
+        {/* Mobile Menu Toggle Button (Strict 44x44px minimum touch target) */}
         <button
+          type="button"
           className="mobile-menu-btn"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label={mobileMenuOpen ? 'Close Menu' : 'Open Menu'}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-navigation-drawer"
+          aria-label={mobileMenuOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             width: '44px',
             height: '44px',
+            minWidth: '44px',
+            minHeight: '44px',
             color: 'var(--color-gold)',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid rgba(214, 166, 100, 0.3)',
+            backgroundColor: mobileMenuOpen ? 'rgba(214, 166, 100, 0.15)' : 'transparent',
+            transition: 'background-color var(--transition-fast), border-color var(--transition-fast)',
+            touchAction: 'manipulation',
+            flexShrink: 0,
           }}
         >
           <svg
@@ -204,6 +247,7 @@ export default function Navbar() {
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            aria-hidden="true"
           >
             {mobileMenuOpen ? (
               <>
@@ -221,51 +265,87 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* Mobile Slide-down Menu */}
+      {/* Mobile Drawer & Backdrop */}
       {mobileMenuOpen && (
-        <div
-          style={{
-            backgroundColor: 'var(--color-maroon-dark)',
-            borderBottom: '1px solid rgba(214, 166, 100, 0.3)',
-            padding: '1.75rem var(--container-padding) 2.25rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.25rem',
-          }}
-        >
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              onClick={() => setMobileMenuOpen(false)}
-              style={{
-                fontSize: '1.1rem',
-                fontWeight: 500,
-                color: '#F4E5CC',
-                padding: '0.35rem 0',
-                borderBottom: '1px solid rgba(214, 166, 100, 0.1)',
-              }}
-            >
-              {link.label}
-            </Link>
-          ))}
-          <a
-            href="#enquiry"
-            onClick={() => setMobileMenuOpen(false)}
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={closeMenu}
             style={{
-              marginTop: '0.75rem',
-              display: 'block',
-              textAlign: 'center',
-              padding: '0.85rem',
-              backgroundColor: 'var(--color-gold)',
-              color: 'var(--color-maroon-dark)',
-              fontWeight: 600,
-              borderRadius: 'var(--radius-sm)',
+              position: 'fixed',
+              inset: 0,
+              top: 'clamp(4.5rem, 8vw, 5.75rem)',
+              backgroundColor: 'rgba(20, 4, 5, 0.6)',
+              backdropFilter: 'blur(3px)',
+              WebkitBackdropFilter: 'blur(3px)',
+              zIndex: 88,
+            }}
+            aria-hidden="true"
+          />
+
+          {/* Slide-down Menu Container */}
+          <nav
+            id="mobile-navigation-drawer"
+            aria-label="Mobile Navigation Menu"
+            style={{
+              position: 'relative',
+              zIndex: 89,
+              backgroundColor: 'var(--color-maroon-dark)',
+              borderBottom: '1px solid rgba(214, 166, 100, 0.3)',
+              padding: '1.25rem var(--container-padding) 1.75rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+              maxHeight: 'calc(100dvh - clamp(4.5rem, 8vw, 5.75rem))',
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
             }}
           >
-            Enquire Now
-          </a>
-        </div>
+            {navLinks.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                onClick={closeMenu}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  minHeight: '44px',
+                  fontSize: '1.05rem',
+                  fontWeight: 500,
+                  color: '#F4E5CC',
+                  padding: '0.65rem 0.5rem',
+                  borderBottom: '1px solid rgba(214, 166, 100, 0.1)',
+                  transition: 'color var(--transition-fast), background-color var(--transition-fast)',
+                  borderRadius: 'var(--radius-sm)',
+                }}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <a
+              href="#enquiry"
+              onClick={closeMenu}
+              className="btn-primary"
+              style={{
+                marginTop: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '44px',
+                padding: '0.85rem',
+                backgroundColor: 'var(--color-gold)',
+                color: 'var(--color-maroon-dark)',
+                fontWeight: 600,
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--color-gold)',
+                width: '100%',
+              }}
+            >
+              Enquire Now
+            </a>
+          </nav>
+        </>
       )}
 
       <style jsx>{`

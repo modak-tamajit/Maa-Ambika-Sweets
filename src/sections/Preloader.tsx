@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 
 interface PreloaderProps {
@@ -9,27 +9,51 @@ interface PreloaderProps {
 }
 
 export default function Preloader({ isReady, onFinish }: PreloaderProps) {
-  const [minTimeElapsed, setMinTimeElapsed] = useState<boolean>(false);
   const [isExiting, setIsExiting] = useState<boolean>(false);
+  const minTimeElapsedRef = useRef<boolean>(false);
+  const hasFinishedRef = useRef<boolean>(false);
+  const onFinishRef = useRef(onFinish);
 
   useEffect(() => {
-    // 2.8-second visual presentation of brand emblem to allow full decoding of hero frames
-    const timer = setTimeout(() => {
-      setMinTimeElapsed(true);
-    }, 2800);
+    onFinishRef.current = onFinish;
+  }, [onFinish]);
 
-    return () => clearTimeout(timer);
-  }, []);
+  // Safe dismiss helper
+  const triggerExit = () => {
+    if (hasFinishedRef.current) return;
+    hasFinishedRef.current = true;
+    setIsExiting(true);
+    setTimeout(() => {
+      onFinishRef.current();
+    }, 600);
+  };
 
   useEffect(() => {
-    if (minTimeElapsed && isReady) {
-      setIsExiting(true);
-      const exitTimer = setTimeout(() => {
-        onFinish();
-      }, 700); // Wait for fade-out transition to complete
-      return () => clearTimeout(exitTimer);
+    // 1. Enforce a minimum 1.8s branding presentation
+    const minTimer = setTimeout(() => {
+      minTimeElapsedRef.current = true;
+      if (isReady) {
+        triggerExit();
+      }
+    }, 1800);
+
+    // 2. Absolute safety fallback: Never block user beyond 3.5s under any network condition
+    const maxFallbackTimer = setTimeout(() => {
+      triggerExit();
+    }, 3500);
+
+    return () => {
+      clearTimeout(minTimer);
+      clearTimeout(maxFallbackTimer);
+    };
+  }, [isReady]);
+
+  // If isReady becomes true after minimum time has already elapsed
+  useEffect(() => {
+    if (isReady && minTimeElapsedRef.current) {
+      triggerExit();
     }
-  }, [minTimeElapsed, isReady, onFinish]);
+  }, [isReady]);
 
   return (
     <div
@@ -42,7 +66,7 @@ export default function Preloader({ isReady, onFinish }: PreloaderProps) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        transition: 'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.7s',
+        transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s',
         opacity: isExiting ? 0 : 1,
         visibility: isExiting ? 'hidden' : 'visible',
         pointerEvents: isExiting ? 'none' : 'auto',
