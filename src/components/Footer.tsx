@@ -12,7 +12,7 @@ export default function Footer() {
       style={{
         backgroundColor: 'var(--color-cream)',
         borderTop: '1px solid var(--color-border)',
-        paddingTop: 'clamp(4rem, 6vw, 5.5rem)',
+        paddingTop: 'clamp(3.5rem, 6vw, 5.5rem)',
         paddingBottom: '2.5rem',
       }}
     >
@@ -21,7 +21,7 @@ export default function Footer() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
             gap: 'clamp(2rem, 4vw, 3.5rem)',
             marginBottom: 'clamp(2.5rem, 5vw, 4rem)',
           }}
@@ -32,15 +32,15 @@ export default function Footer() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.85rem',
+                gap: 'clamp(0.6rem, 2vw, 0.85rem)',
                 marginBottom: '1rem',
               }}
             >
               <div
                 style={{
                   position: 'relative',
-                  width: '92px',
-                  height: '92px',
+                  width: 'clamp(64px, 14vw, 88px)',
+                  height: 'clamp(64px, 14vw, 88px)',
                   flexShrink: 0,
                 }}
               >
@@ -48,7 +48,7 @@ export default function Footer() {
                   src="/brand/logo.png"
                   alt={BUSINESS.name.english}
                   fill
-                  sizes="92px"
+                  sizes="(max-width: 640px) 68px, 88px"
                   style={{ objectFit: 'contain' }}
                 />
               </div>
@@ -57,7 +57,7 @@ export default function Footer() {
                   style={{
                     display: 'block',
                     fontFamily: 'var(--font-heading)',
-                    fontSize: '1.65rem',
+                    fontSize: 'clamp(1.35rem, 3.5vw, 1.65rem)',
                     fontWeight: 600,
                     color: 'var(--color-maroon)',
                     lineHeight: 1.1,
@@ -69,7 +69,7 @@ export default function Footer() {
                   className="bengali-text"
                   style={{
                     display: 'block',
-                    fontSize: '1.05rem',
+                    fontSize: 'clamp(0.9rem, 2.5vw, 1.05rem)',
                     color: 'var(--color-muted)',
                     lineHeight: 1.1,
                     marginTop: '0.15rem',
@@ -94,7 +94,7 @@ export default function Footer() {
 
             <p
               style={{
-                fontSize: '0.88rem',
+                fontSize: '0.9rem',
                 lineHeight: 1.6,
                 color: 'var(--color-text-light)',
                 marginBottom: '1rem',
@@ -128,7 +128,7 @@ export default function Footer() {
             >
               Quick Links
             </h4>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               {[
                 { label: 'Home', href: '#hero' },
                 { label: 'Our Story', href: '#story' },
@@ -141,9 +141,13 @@ export default function Footer() {
                   <Link
                     href={link.href}
                     style={{
-                      fontSize: '0.9rem',
+                      fontSize: '0.92rem',
                       color: 'var(--color-text-light)',
                       transition: 'color var(--transition-fast)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      minHeight: '36px',
+                      padding: '0.25rem 0',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.color = 'var(--color-maroon)';
@@ -183,7 +187,9 @@ export default function Footer() {
               <div>
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', display: 'block' }}>Phone / WhatsApp</span>
                 <p style={{ color: 'var(--color-text)' }}>
-                  {BUSINESS.phone} / {BUSINESS.whatsapp}
+                  <a href={`tel:${BUSINESS.phone}`} style={{ color: 'inherit', textDecoration: 'underline' }}>{BUSINESS.phone}</a>
+                  {' / '}
+                  <a href={`https://wa.me/${BUSINESS.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{BUSINESS.whatsapp}</a>
                 </p>
               </div>
 
@@ -205,11 +211,12 @@ export default function Footer() {
                     gap: '0.4rem',
                     color: 'var(--color-maroon)',
                     fontWeight: 500,
-                    fontSize: '0.85rem',
+                    fontSize: '0.9rem',
+                    minHeight: '44px',
                   }}
                 >
-                  <span>Instagram</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <span>Follow on Instagram</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                     <line x1="7" y1="17" x2="17" y2="7" />
                     <polyline points="7 7 17 7 17 17" />
                   </svg>
@@ -232,12 +239,12 @@ export default function Footer() {
           <span
             style={{
               display: 'block',
-              fontSize: '0.7rem',
+              fontSize: '0.75rem',
               fontWeight: 600,
               textTransform: 'uppercase',
               letterSpacing: '0.15em',
               color: 'var(--color-gold-muted)',
-              marginBottom: '1rem',
+              marginBottom: '1.25rem',
               textAlign: 'center',
             }}
           >
@@ -247,7 +254,7 @@ export default function Footer() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
               gap: 'clamp(1.5rem, 3vw, 2.5rem)',
               textAlign: 'center',
               alignItems: 'center',
@@ -257,28 +264,30 @@ export default function Footer() {
               <div
                 key={item.id}
                 style={{
-                  padding: '0.5rem 1rem',
+                  padding: '0.5rem',
                   backgroundColor: 'transparent',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '0.4rem',
+                  gap: '0.35rem',
+                  width: '100%',
                 }}
               >
-                {/* Official Transparent Logo - Enlarged & Crisp */}
+                {/* Official Transparent Logo - Responsive & Crisp */}
                 <div
                   style={{
                     position: 'relative',
-                    width: item.id === 'trade' ? '85px' : item.id === 'msme' ? '240px' : '200px',
-                    height: item.id === 'trade' ? '110px' : item.id === 'msme' ? '105px' : '90px',
-                    marginBottom: '0.6rem',
+                    width: '100%',
+                    maxWidth: item.id === 'trade' ? '85px' : item.id === 'msme' ? '210px' : '180px',
+                    height: item.id === 'trade' ? '100px' : item.id === 'msme' ? '90px' : '80px',
+                    marginBottom: '0.5rem',
                   }}
                 >
                   <Image
                     src={item.logo}
                     alt={`${item.authority} Official Emblem`}
                     fill
-                    sizes="(max-width: 768px) 180px, 250px"
+                    sizes="(max-width: 768px) 160px, 220px"
                     style={{ objectFit: 'contain' }}
                   />
                 </div>
@@ -287,7 +296,7 @@ export default function Footer() {
                   style={{
                     display: 'block',
                     fontFamily: 'var(--font-heading)',
-                    fontSize: '1.25rem',
+                    fontSize: '1.2rem',
                     fontWeight: 600,
                     color: 'var(--color-maroon)',
                     lineHeight: 1.15,
@@ -329,16 +338,16 @@ export default function Footer() {
             flexWrap: 'wrap',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '1rem',
-            fontSize: '0.8rem',
+            gap: '0.75rem',
+            fontSize: '0.82rem',
             color: 'var(--color-muted)',
           }}
         >
-          <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
+          <p style={{ fontSize: '0.82rem', color: 'var(--color-muted)', margin: 0 }}>
             &copy; {currentYear} {BUSINESS.name.english} ({BUSINESS.name.bengali}). All rights reserved.
           </p>
 
-          <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
+          <p style={{ fontSize: '0.82rem', color: 'var(--color-muted)', margin: 0 }}>
             Serving authentic sweetness since {BUSINESS.established} &bull; Kalna, West Bengal
           </p>
         </div>

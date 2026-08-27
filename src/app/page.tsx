@@ -16,13 +16,14 @@ import Enquiry from '@/sections/Enquiry';
 import Instagram from '@/sections/Instagram';
 import FinalCTA from '@/sections/FinalCTA';
 import Footer from '@/components/Footer';
+import MobileQuickBar from '@/components/MobileQuickBar';
 
 export default function HomePage() {
   const [initialFramesReady, setInitialFramesReady] = useState(false);
   const [preloaderDone, setPreloaderDone] = useState(false);
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: 'var(--color-cream)' }}>
+    <main className="site-main" style={{ minHeight: '100vh', backgroundColor: 'var(--color-cream)', width: '100%' }}>
       {/* Brand Preloader */}
       {!preloaderDone && (
         <Preloader
@@ -34,7 +35,7 @@ export default function HomePage() {
       {/* Global Fixed Header */}
       <Navbar />
 
-      {/* Hero Section: 50-frame Scroll-driven Canvas Sequence */}
+      {/* Hero Section: 250-frame Scroll-driven Canvas Sequence */}
       <HeroSequence
         onInitialFramesReady={() => setInitialFramesReady(true)}
       />
@@ -74,6 +75,9 @@ export default function HomePage() {
 
       {/* Footer with Registered & Licensed Compliance details */}
       <Footer />
+
+      {/* Sticky Mobile Quick Action Bar (Call, WhatsApp, Directions) */}
+      <MobileQuickBar />
     </main>
   );
 }

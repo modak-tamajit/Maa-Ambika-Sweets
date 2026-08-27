@@ -9,27 +9,26 @@ interface PreloaderProps {
 }
 
 export default function Preloader({ isReady, onFinish }: PreloaderProps) {
-  const [minTimeElapsed, setMinTimeElapsed] = useState<boolean>(false);
   const [isExiting, setIsExiting] = useState<boolean>(false);
 
   useEffect(() => {
-    // 2.8-second visual presentation of brand emblem to allow full decoding of hero frames
+    let finishTimeout: NodeJS.Timeout | null = null;
+
+    // Minimum 2.8-second presentation
     const timer = setTimeout(() => {
-      setMinTimeElapsed(true);
+      if (isReady) {
+        setIsExiting(true);
+        finishTimeout = setTimeout(() => {
+          onFinish();
+        }, 700);
+      }
     }, 2800);
 
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (minTimeElapsed && isReady) {
-      setIsExiting(true);
-      const exitTimer = setTimeout(() => {
-        onFinish();
-      }, 700); // Wait for fade-out transition to complete
-      return () => clearTimeout(exitTimer);
-    }
-  }, [minTimeElapsed, isReady, onFinish]);
+    return () => {
+      clearTimeout(timer);
+      if (finishTimeout) clearTimeout(finishTimeout);
+    };
+  }, [isReady, onFinish]);
 
   return (
     <div

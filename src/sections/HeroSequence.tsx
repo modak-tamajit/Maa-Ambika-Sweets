@@ -21,13 +21,22 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const currentFrameRef = useRef<number>(1);
   const targetFrameRef = useRef<number>(1);
   const isRenderingRef = useRef<boolean>(false);
+  const rafIdRef = useRef<number | null>(null);
+  const renderLoopRef = useRef<() => void>(() => {});
   const lastDrawnFrameRef = useRef<number>(-1);
   const scrollDirectionRef = useRef<number>(1); // 1 = down, -1 = up
   const lastScrollYRef = useRef<number>(0);
+  const prefersReducedMotionRef = useRef<boolean>(false);
 
   const [hasStartedScroll, setHasStartedScroll] = useState<boolean>(false);
+  const [reducedMotion, setReducedMotion] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+    return false;
+  });
 
-  // Helper to load and decode a single frame with maximum priority
+  // Helper to load and decode a single frame with priority
   const loadFrame = useCallback((frameNumber: number, priority: boolean = false): Promise<HTMLImageElement | null> => {
     if (frameNumber < 1 || frameNumber > TOTAL_FRAMES) return Promise.resolve(null);
     if (framesCache.current.has(frameNumber)) {
@@ -75,22 +84,23 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
 
   // Proactive directional preloader: aggressively loads ahead in scroll direction
   const preloadProximityFrames = useCallback((centerFrame: number) => {
+    if (prefersReducedMotionRef.current) return;
     const isDown = scrollDirectionRef.current >= 0;
     
-    // Look ahead 30 frames in scroll direction, and 10 frames behind
+    // Look ahead 25 frames in scroll direction, and 8 frames behind
     const offsets: number[] = [];
     if (isDown) {
-      for (let i = 0; i <= 30; i++) offsets.push(i);
-      for (let i = -1; i >= -10; i--) offsets.push(i);
+      for (let i = 0; i <= 25; i++) offsets.push(i);
+      for (let i = -1; i >= -8; i--) offsets.push(i);
     } else {
-      for (let i = 0; i >= -30; i--) offsets.push(i);
-      for (let i = 1; i <= 10; i++) offsets.push(i);
+      for (let i = 0; i >= -25; i--) offsets.push(i);
+      for (let i = 1; i <= 8; i++) offsets.push(i);
     }
 
     offsets.forEach((offset) => {
       const target = centerFrame + offset;
       if (target >= 1 && target <= TOTAL_FRAMES && !framesCache.current.has(target)) {
-        loadFrame(target, Math.abs(offset) <= 6);
+        loadFrame(target, Math.abs(offset) <= 5);
       }
     });
   }, [loadFrame]);
@@ -158,18 +168,17 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     lastDrawnFrameRef.current = frameNum;
   }, []);
 
-  // Continuous visual smoothing render loop via requestAnimationFrame (Scroll-Velocity Responsive)
+  // Continuous visual smoothing render loop via requestAnimationFrame
   const renderLoop = useCallback(() => {
     const target = targetFrameRef.current;
     const current = currentFrameRef.current;
 
     const diff = target - current;
     
-    // Dynamic smooth lerp: directly tracks user's scroll speed with organic damping
+    // Dynamic smooth lerp
     if (Math.abs(diff) < 0.05) {
       currentFrameRef.current = target;
     } else {
-      // 0.2 lerp factor delivers responsive scroll-tracking while maintaining 60fps smoothness
       currentFrameRef.current += diff * 0.2;
     }
 
@@ -185,25 +194,34 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
 
     // Keep running until frame counter reaches target
     if (Math.abs(target - currentFrameRef.current) >= 0.01) {
-      requestAnimationFrame(renderLoop);
+      rafIdRef.current = requestAnimationFrame(() => {
+        renderLoopRef.current();
+      });
     } else {
       isRenderingRef.current = false;
+      rafIdRef.current = null;
     }
   }, [drawFrame, preloadProximityFrames]);
+
+  useEffect(() => {
+    renderLoopRef.current = renderLoop;
+  }, [renderLoop]);
 
   const requestRender = useCallback(() => {
     if (!isRenderingRef.current) {
       isRenderingRef.current = true;
-      requestAnimationFrame(renderLoop);
+      rafIdRef.current = requestAnimationFrame(() => {
+        renderLoopRef.current();
+      });
     }
-  }, [renderLoop]);
+  }, []);
 
-  // Precise HiDPI Retina Canvas Resizing
+  // Precise HiDPI Retina Canvas Resizing (capped at 2.0 DPR for mobile performance)
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.0);
     const rect = canvas.getBoundingClientRect();
 
     if (rect.width > 0 && rect.height > 0) {
@@ -213,13 +231,28 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     }
   }, [drawFrame]);
 
+  // Check reduced motion preference
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    prefersReducedMotionRef.current = mediaQuery.matches;
+
+    const handleChange = (e: MediaQueryListEvent) => {
+      prefersReducedMotionRef.current = e.matches;
+      setReducedMotion(e.matches);
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
   // Fast initial batch load + background stream
   useEffect(() => {
     let isMounted = true;
 
     const initialLoad = async () => {
-      // 1. Rapidly fetch and decode first 50 frames in parallel
-      const firstBatch = Array.from({ length: 50 }, (_, i) => i + 1);
+      // 1. Rapidly fetch and decode first 35 frames in parallel
+      const firstBatchSize = prefersReducedMotionRef.current ? 5 : 40;
+      const firstBatch = Array.from({ length: firstBatchSize }, (_, i) => i + 1);
       await Promise.all(firstBatch.map((f) => loadFrame(f, true)));
 
       if (isMounted) {
@@ -230,13 +263,16 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
         }
       }
 
+      // If reduced motion is on, we do not need to stream all 250 frames
+      if (prefersReducedMotionRef.current) return;
+
       // 2. Stream all remaining frames progressively without blocking main thread
-      for (let f = 51; f <= TOTAL_FRAMES; f++) {
+      for (let f = firstBatchSize + 1; f <= TOTAL_FRAMES; f++) {
         if (!isMounted) break;
         if (!framesCache.current.has(f)) {
           loadFrame(f, false);
           if (f % 6 === 0) {
-            await new Promise((r) => setTimeout(r, 12));
+            await new Promise((r) => setTimeout(r, 16));
           }
         }
       }
@@ -246,11 +282,16 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
 
     return () => {
       isMounted = false;
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
     };
   }, [loadFrame, resizeCanvas, drawFrame, onInitialFramesReady]);
 
   // Scroll listener with velocity & direction tracking
   useEffect(() => {
+    if (reducedMotion) return;
+
     const handleScroll = () => {
       const container = containerRef.current;
       if (!container) return;
@@ -280,21 +321,29 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', resizeCanvas, { passive: true });
+    window.addEventListener('orientationchange', resizeCanvas, { passive: true });
 
     // Also use ResizeObserver for dynamic container monitoring
-    const resizeObserver = new ResizeObserver(() => {
-      resizeCanvas();
-    });
-    if (containerRef.current) {
+    let resizeObserver: ResizeObserver | null = null;
+    if (containerRef.current && typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        resizeCanvas();
+      });
       resizeObserver.observe(containerRef.current);
     }
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', resizeCanvas);
-      resizeObserver.disconnect();
+      window.removeEventListener('orientationchange', resizeCanvas);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
     };
-  }, [hasStartedScroll, requestRender, resizeCanvas]);
+  }, [hasStartedScroll, requestRender, resizeCanvas, reducedMotion]);
 
   return (
     <section
@@ -302,11 +351,12 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       ref={containerRef}
       style={{
         position: 'relative',
-        height: '380vh', // Calibrated 380vh scroll height for smooth, responsive 250-frame pacing
+        height: reducedMotion ? '100dvh' : '360vh', // Calibrated scroll height for smooth mobile & desktop pacing
+        minHeight: '100vh',
         backgroundColor: 'var(--color-cream)',
       }}
     >
-      {/* Sticky Canvas Viewport */}
+      {/* Sticky Canvas Viewport (using 100dvh to prevent mobile URL bar jitter) */}
       <div
         style={{
           position: 'sticky',
@@ -314,6 +364,8 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
           left: 0,
           width: '100%',
           height: '100vh',
+          // @ts-expect-error dvh fallback support
+          height: '100dvh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -327,16 +379,17 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
             width: '100%',
             height: '100%',
             display: 'block',
+            touchAction: 'pan-y',
           }}
           aria-label="Maa Ambika Sweets handcrafted Rasogolla preparation scroll sequence"
         />
 
         {/* Subtle, restrained scroll indicator */}
-        {!hasStartedScroll && (
+        {!hasStartedScroll && !reducedMotion && (
           <div
             style={{
               position: 'absolute',
-              bottom: '2.5rem',
+              bottom: 'clamp(1.5rem, 5vh, 2.5rem)',
               left: '50%',
               transform: 'translateX(-50%)',
               display: 'flex',
@@ -361,6 +414,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
+              aria-hidden="true"
             >
               <polyline points="6 9 12 15 18 9" />
             </svg>

@@ -53,8 +53,8 @@ export default function WhyMaaAmbika() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: 'clamp(1.5rem, 3vw, 2.25rem)',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
+            gap: 'clamp(1.25rem, 3vw, 2.25rem)',
           }}
         >
           {reasons.map((reason) => (
@@ -74,7 +74,7 @@ export default function WhyMaaAmbika() {
                   fontSize: '1.75rem',
                   fontWeight: 600,
                   color: 'var(--color-gold-muted)',
-                  marginBottom: '1rem',
+                  marginBottom: '0.75rem',
                   display: 'block',
                 }}
               >
@@ -82,7 +82,7 @@ export default function WhyMaaAmbika() {
               </span>
               <h3
                 style={{
-                  fontSize: '1.3rem',
+                  fontSize: '1.25rem',
                   color: 'var(--color-maroon)',
                   marginBottom: '0.25rem',
                 }}
@@ -95,7 +95,7 @@ export default function WhyMaaAmbika() {
                   display: 'block',
                   fontSize: '0.85rem',
                   color: 'var(--color-muted)',
-                  marginBottom: '0.85rem',
+                  marginBottom: '0.75rem',
                 }}
               >
                 {reason.bengali}

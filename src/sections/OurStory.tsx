@@ -14,8 +14,8 @@ export default function OurStory() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: 'clamp(2.5rem, 6vw, 5rem)',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+            gap: 'clamp(2rem, 5vw, 4.5rem)',
             alignItems: 'center',
           }}
         >
@@ -24,9 +24,9 @@ export default function OurStory() {
             <span className="section-tag">Our Roots & Heritage</span>
             <h2
               style={{
-                fontSize: 'clamp(2rem, 3.5vw, 2.8rem)',
+                fontSize: 'clamp(1.85rem, 3.5vw, 2.8rem)',
                 color: 'var(--color-maroon)',
-                marginBottom: '1.5rem',
+                marginBottom: '1.25rem',
               }}
             >
               Rooted in Kalna Since {BUSINESS.established}
@@ -34,7 +34,7 @@ export default function OurStory() {
 
             <p
               style={{
-                fontSize: '1rem',
+                fontSize: '0.98rem',
                 lineHeight: 1.7,
                 color: 'var(--color-text-light)',
                 marginBottom: '1.25rem',
@@ -47,7 +47,7 @@ export default function OurStory() {
 
             <p
               style={{
-                fontSize: '1rem',
+                fontSize: '0.98rem',
                 lineHeight: 1.7,
                 color: 'var(--color-text-light)',
                 marginBottom: '1.5rem',
@@ -61,14 +61,14 @@ export default function OurStory() {
             <div
               style={{
                 paddingLeft: '1.25rem',
-                borderLeft: '2px solid var(--color-gold)',
-                marginTop: '1.75rem',
+                borderLeft: '3px solid var(--color-gold)',
+                marginTop: '1.5rem',
               }}
             >
               <p
                 className="bengali-text"
                 style={{
-                  fontSize: '1.1rem',
+                  fontSize: 'clamp(1rem, 1.3vw, 1.15rem)',
                   fontWeight: 500,
                   color: 'var(--color-maroon)',
                   lineHeight: 1.6,
@@ -84,24 +84,24 @@ export default function OurStory() {
             style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '1.5rem',
+              gap: '1.25rem',
             }}
           >
             <div className="card-base">
               <span
                 style={{
-                  fontSize: '0.8rem',
+                  fontSize: '0.75rem',
                   fontWeight: 600,
                   color: 'var(--color-gold-muted)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em',
                   display: 'block',
-                  marginBottom: '0.4rem',
+                  marginBottom: '0.35rem',
                 }}
               >
                 Purity
               </span>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.2rem', marginBottom: '0.4rem', color: 'var(--color-maroon)' }}>
                 Pure Milk & Fresh Chhana
               </h3>
               <p style={{ fontSize: '0.9rem', lineHeight: 1.6 }}>
@@ -112,18 +112,18 @@ export default function OurStory() {
             <div className="card-base">
               <span
                 style={{
-                  fontSize: '0.8rem',
+                  fontSize: '0.75rem',
                   fontWeight: 600,
                   color: 'var(--color-gold-muted)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em',
                   display: 'block',
-                  marginBottom: '0.4rem',
+                  marginBottom: '0.35rem',
                 }}
               >
                 Consistency
               </span>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.2rem', marginBottom: '0.4rem', color: 'var(--color-maroon)' }}>
                 Two Decades of Craftsmanship
               </h3>
               <p style={{ fontSize: '0.9rem', lineHeight: 1.6 }}>
@@ -134,18 +134,18 @@ export default function OurStory() {
             <div className="card-base">
               <span
                 style={{
-                  fontSize: '0.8rem',
+                  fontSize: '0.75rem',
                   fontWeight: 600,
                   color: 'var(--color-gold-muted)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em',
                   display: 'block',
-                  marginBottom: '0.4rem',
+                  marginBottom: '0.35rem',
                 }}
               >
                 Accessibility
               </span>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.2rem', marginBottom: '0.4rem', color: 'var(--color-maroon)' }}>
                 Honest, Approachable Value
               </h3>
               <p style={{ fontSize: '0.9rem', lineHeight: 1.6 }}>

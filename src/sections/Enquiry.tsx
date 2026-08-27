@@ -72,6 +72,7 @@ export default function Enquiry() {
           style={{
             maxWidth: '640px',
             margin: '0 auto',
+            width: '100%',
           }}
         >
           <div className="card-base" style={{ backgroundColor: 'var(--color-cream-light)' }}>
@@ -99,6 +100,7 @@ export default function Enquiry() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    aria-hidden="true"
                   >
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
@@ -113,7 +115,7 @@ export default function Enquiry() {
                   type="button"
                   onClick={() => setSubmitted(false)}
                   className="btn-secondary"
-                  style={{ fontSize: '0.85rem' }}
+                  style={{ minHeight: '44px', fontSize: '0.9rem' }}
                 >
                   Send Another Enquiry
                 </button>
@@ -138,19 +140,22 @@ export default function Enquiry() {
                     type="text"
                     id="name"
                     name="name"
+                    autoComplete="name"
                     required
                     value={formData.name}
                     onChange={handleChange}
                     placeholder="e.g. Rahul Sen"
                     style={{
                       width: '100%',
-                      padding: '0.75rem 1rem',
-                      fontSize: '0.95rem',
+                      padding: '0.8rem 1rem',
+                      fontSize: '16px', // Strict 16px to prevent iOS Safari auto-zoom
                       backgroundColor: 'var(--color-surface)',
                       border: '1px solid var(--color-border)',
                       borderRadius: 'var(--radius-sm)',
                       color: 'var(--color-text)',
                       fontFamily: 'inherit',
+                      minHeight: '44px',
+                      boxSizing: 'border-box',
                     }}
                   />
                 </div>
@@ -159,7 +164,7 @@ export default function Enquiry() {
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
                     gap: '1.25rem',
                   }}
                 >
@@ -180,19 +185,23 @@ export default function Enquiry() {
                       type="tel"
                       id="phone"
                       name="phone"
+                      inputMode="tel"
+                      autoComplete="tel"
                       required
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder="e.g. 9876543210"
                       style={{
                         width: '100%',
-                        padding: '0.75rem 1rem',
-                        fontSize: '0.95rem',
+                        padding: '0.8rem 1rem',
+                        fontSize: '16px', // Strict 16px to prevent iOS Safari auto-zoom
                         backgroundColor: 'var(--color-surface)',
                         border: '1px solid var(--color-border)',
                         borderRadius: 'var(--radius-sm)',
                         color: 'var(--color-text)',
                         fontFamily: 'inherit',
+                        minHeight: '44px',
+                        boxSizing: 'border-box',
                       }}
                     />
                   </div>
@@ -214,18 +223,22 @@ export default function Enquiry() {
                       type="email"
                       id="email"
                       name="email"
+                      inputMode="email"
+                      autoComplete="email"
                       value={formData.email}
                       onChange={handleChange}
                       placeholder="e.g. rahul@example.com"
                       style={{
                         width: '100%',
-                        padding: '0.75rem 1rem',
-                        fontSize: '0.95rem',
+                        padding: '0.8rem 1rem',
+                        fontSize: '16px', // Strict 16px to prevent iOS Safari auto-zoom
                         backgroundColor: 'var(--color-surface)',
                         border: '1px solid var(--color-border)',
                         borderRadius: 'var(--radius-sm)',
                         color: 'var(--color-text)',
                         fontFamily: 'inherit',
+                        minHeight: '44px',
+                        boxSizing: 'border-box',
                       }}
                     />
                   </div>
@@ -254,14 +267,16 @@ export default function Enquiry() {
                     placeholder="e.g. I would like to enquire about sweets for an upcoming family occasion on Sunday."
                     style={{
                       width: '100%',
-                      padding: '0.75rem 1rem',
-                      fontSize: '0.95rem',
+                      padding: '0.8rem 1rem',
+                      fontSize: '16px', // Strict 16px to prevent iOS Safari auto-zoom
                       backgroundColor: 'var(--color-surface)',
                       border: '1px solid var(--color-border)',
                       borderRadius: 'var(--radius-sm)',
                       color: 'var(--color-text)',
                       fontFamily: 'inherit',
                       resize: 'vertical',
+                      minHeight: '100px',
+                      boxSizing: 'border-box',
                     }}
                   />
                 </div>
@@ -273,8 +288,10 @@ export default function Enquiry() {
                   style={{
                     width: '100%',
                     padding: '0.9rem',
+                    minHeight: '48px',
                     marginTop: '0.5rem',
                     gap: '0.5rem',
+                    touchAction: 'manipulation',
                   }}
                 >
                   <span>Send Enquiry via WhatsApp</span>
@@ -287,6 +304,7 @@ export default function Enquiry() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    aria-hidden="true"
                   >
                     <line x1="22" y1="2" x2="11" y2="13" />
                     <polygon points="22 2 15 22 11 13 2 9 22 2" />
@@ -295,10 +313,11 @@ export default function Enquiry() {
 
                 <p
                   style={{
-                    fontSize: '0.75rem',
+                    fontSize: '0.78rem',
                     textAlign: 'center',
                     color: 'var(--color-muted)',
                     marginTop: '0.25rem',
+                    lineHeight: 1.4,
                   }}
                 >
                   This will format your details and open WhatsApp directly. No sign-up required.
