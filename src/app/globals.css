@@ -253,3 +253,27 @@ section[id] {
   animation: scrollBob 1.8s ease-in-out infinite;
 }
 
+/* 4-column License/Compliance Grid */
+.license-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(1.75rem, 3.5vw, 4rem);
+  text-align: center;
+  align-items: flex-start;
+  width: 100%;
+}
+
+@media (max-width: 990px) {
+  .license-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2.5rem 2rem;
+  }
+}
+
+@media (max-width: 540px) {
+  .license-grid {
+    grid-template-columns: 1fr;
+    gap: 2.25rem;
+  }
+}
+

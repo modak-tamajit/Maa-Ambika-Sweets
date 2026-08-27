@@ -4,6 +4,7 @@ export interface LicenseItem {
   subtitle: string;
   registrationNumber: string;
   logo: string;
+  logos?: string[];
 }
 
 /**
@@ -21,6 +22,18 @@ export const licenses: LicenseItem[] = [
     subtitle: 'Licensed Food Business',
     registrationNumber: 'FSSAI No. XXXXXXXXXXXX',
     logo: '/brand/licenses/fssai.png',
+  },
+  {
+    id: 'gi',
+    authority: 'Geographical Indication Registry',
+    subtitle: 'Authorized User – Banglar Rasogolla',
+    registrationNumber: 'AU/6502/GI/533/85',
+    logo: '/brand/licenses/gi-banglar-rasogolla.png',
+    logos: [
+      '/brand/licenses/gi-banglar-rasogolla.png',
+      '/brand/licenses/gi-emblem.png',
+      '/brand/licenses/gi-ip-india.png',
+    ],
   },
   {
     id: 'msme',

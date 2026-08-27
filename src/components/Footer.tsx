@@ -16,7 +16,14 @@ export default function Footer() {
         paddingBottom: '2.5rem',
       }}
     >
-      <div className="container">
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '1440px',
+          margin: '0 auto',
+          padding: '0 clamp(1.5rem, 4vw, 3.5rem)',
+        }}
+      >
         {/* 1. Registered & Licensed Section — Trust & Compliance (Top) */}
         <div
           style={{
@@ -28,65 +35,113 @@ export default function Footer() {
           <span
             style={{
               display: 'block',
-              fontSize: '0.7rem',
+              fontSize: '0.8rem',
               fontWeight: 600,
               textTransform: 'uppercase',
-              letterSpacing: '0.15em',
+              letterSpacing: '0.16em',
               color: 'var(--color-gold-muted)',
-              marginBottom: '1.25rem',
+              marginBottom: '1.75rem',
               textAlign: 'center',
             }}
           >
             Registered &amp; Licensed Business
           </span>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
-              gap: 'clamp(1.5rem, 3vw, 2.5rem)',
-              textAlign: 'center',
-              alignItems: 'center',
-            }}
-          >
+          <div className="license-grid">
             {licenses.map((item) => (
               <div
                 key={item.id}
                 style={{
-                  padding: '0.5rem 1rem',
+                  padding: '0.5rem 0.5rem',
                   backgroundColor: 'transparent',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '0.4rem',
+                  gap: '0.3rem',
                 }}
               >
-                {/* Official Transparent Logo */}
-                <div
-                  style={{
-                    position: 'relative',
-                    width: item.id === 'trade' ? '85px' : item.id === 'msme' ? '240px' : '200px',
-                    height: item.id === 'trade' ? '110px' : item.id === 'msme' ? '105px' : '90px',
-                    marginBottom: '0.6rem',
-                  }}
-                >
-                  <Image
-                    src={item.logo}
-                    alt={`${item.authority} Official Emblem`}
-                    fill
-                    sizes="(max-width: 768px) 180px, 250px"
-                    style={{ objectFit: 'contain' }}
-                  />
-                </div>
+                {/* Official Logos Header */}
+                {item.logos && item.logos.length > 0 ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 'clamp(0.4rem, 1vw, 0.75rem)',
+                      height: '120px',
+                      width: '100%',
+                      maxWidth: '295px',
+                      marginBottom: '0.85rem',
+                    }}
+                  >
+                    {/* 1. Banglar Rasogolla Seal */}
+                    <div style={{ position: 'relative', width: '82px', height: '82px', flexShrink: 0 }}>
+                      <Image
+                        src={item.logos[0]}
+                        alt="Banglar Rasogolla Geographical Indication Emblem"
+                        fill
+                        sizes="100px"
+                        style={{ objectFit: 'contain' }}
+                      />
+                    </div>
+                    {/* 2. State Lion Capital Emblem */}
+                    <div style={{ position: 'relative', width: '70px', height: '98px', flexShrink: 0 }}>
+                      <Image
+                        src={item.logos[1]}
+                        alt="Government of India Emblem"
+                        fill
+                        sizes="90px"
+                        style={{ objectFit: 'contain' }}
+                      />
+                    </div>
+                    {/* 3. Intellectual Property India Logo */}
+                    <div style={{ position: 'relative', width: '96px', height: '80px', flexShrink: 0 }}>
+                      <Image
+                        src={item.logos[2]}
+                        alt="Intellectual Property India Emblem"
+                        fill
+                        sizes="110px"
+                        style={{ objectFit: 'contain' }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '120px',
+                      marginBottom: '0.85rem',
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: 'relative',
+                        width: item.id === 'trade' ? '80px' : item.id === 'msme' ? '220px' : '192px',
+                        height: item.id === 'trade' ? '110px' : item.id === 'msme' ? '98px' : '94px',
+                      }}
+                    >
+                      <Image
+                        src={item.logo}
+                        alt={`${item.authority} Official Emblem`}
+                        fill
+                        sizes="(max-width: 768px) 160px, 240px"
+                        style={{ objectFit: 'contain' }}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <span
                   style={{
                     display: 'block',
                     fontFamily: 'var(--font-heading)',
-                    fontSize: '1.25rem',
+                    fontSize: 'clamp(1.3rem, 1.65vw, 1.52rem)',
                     fontWeight: 600,
                     color: 'var(--color-maroon)',
-                    lineHeight: 1.15,
+                    lineHeight: 1.2,
+                    marginBottom: '0.2rem',
                   }}
                 >
                   {item.authority}
@@ -94,9 +149,10 @@ export default function Footer() {
                 <span
                   style={{
                     display: 'block',
-                    fontSize: '0.85rem',
-                    color: 'var(--color-muted)',
-                    lineHeight: 1.3,
+                    fontSize: '1rem',
+                    color: 'var(--color-text-light)',
+                    lineHeight: 1.35,
+                    marginBottom: '0.24rem',
                   }}
                 >
                   {item.subtitle}
@@ -104,11 +160,11 @@ export default function Footer() {
                 <span
                   style={{
                     display: 'block',
-                    fontSize: '0.82rem',
-                    color: 'var(--color-text-light)',
+                    fontSize: '0.92rem',
+                    color: 'var(--color-maroon-dark)',
                     fontFamily: 'monospace',
+                    fontWeight: 600,
                     letterSpacing: '0.04em',
-                    marginTop: '0.15rem',
                   }}
                 >
                   {item.registrationNumber}
