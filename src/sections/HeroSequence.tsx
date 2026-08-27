@@ -161,11 +161,14 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
 
     const diff = target - current;
     
-    // Dynamic smooth lerp: directly tracks user's scroll speed with organic damping
-    if (Math.abs(diff) < 0.05) {
+    // Dynamic smooth lerp: directly tracks user's scroll speed with organic damping.
+    // If delta is large (jumping between sections or clicking nav links), snap immediately to eliminate chaotic fast-rewinds.
+    if (Math.abs(diff) > 8) {
+      currentFrameRef.current = target;
+    } else if (Math.abs(diff) < 0.05) {
       currentFrameRef.current = target;
     } else {
-      currentFrameRef.current += diff * 0.2;
+      currentFrameRef.current += diff * 0.25;
     }
 
     const roundedFrame = Math.round(currentFrameRef.current);
@@ -277,15 +280,28 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       const scrolled = -rect.top;
       const progress = Math.max(0, Math.min(1, scrolled / scrollableDistance));
 
-      if (progress > 0 && !hasStartedScroll) {
-        setHasStartedScroll(true);
+      if (progress > 0.005) {
+        if (!hasStartedScroll) {
+          setHasStartedScroll(true);
+        }
+      } else {
+        if (hasStartedScroll) {
+          setHasStartedScroll(false);
+        }
       }
 
       // Direct linear frame mapping across all 250 frames
       const calculatedTarget = Math.floor(progress * (TOTAL_FRAMES - 1)) + 1;
       targetFrameRef.current = Math.max(1, Math.min(TOTAL_FRAMES, calculatedTarget));
 
-      requestRender();
+      // Instant snap when reaching top of page
+      if (progress === 0) {
+        currentFrameRef.current = 1;
+        targetFrameRef.current = 1;
+        drawFrame(1);
+      } else {
+        requestRender();
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -334,42 +350,60 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
           aria-label="Maa Ambika Sweets handcrafted Rasogolla preparation scroll sequence"
         />
 
-        {/* Subtle, restrained scroll indicator */}
-        {!hasStartedScroll && (
-          <div
+        {/* Minimal Floating Scroll Indicator (Optically & mathematically centered) */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 'max(clamp(2.25rem, 7vh, 3.75rem), calc(1.75rem + env(safe-area-inset-bottom, 0px)))',
+            left: '50%',
+            transform: hasStartedScroll
+              ? 'translateX(-50%) translateY(10px)'
+              : 'translateX(-50%) translateY(0)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.4rem',
+            zIndex: 20,
+            pointerEvents: 'none',
+            opacity: hasStartedScroll ? 0 : 1,
+            transition: 'opacity 0.35s ease, transform 0.35s ease',
+            whiteSpace: 'nowrap',
+            textAlign: 'center',
+          }}
+          aria-hidden={hasStartedScroll}
+        >
+          <span
             style={{
-              position: 'absolute',
-              bottom: 'clamp(1.5rem, 5vh, 2.5rem)',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '0.4rem',
-              color: 'var(--color-muted)',
-              fontSize: '0.75rem',
-              letterSpacing: '0.15em',
+              color: 'var(--color-gold)',
+              fontSize: 'clamp(0.75rem, 2vw, 0.85rem)',
+              fontWeight: 600,
+              letterSpacing: '0.18em',
+              paddingLeft: '0.18em', // Cancels optical offset from trailing letter-spacing
               textTransform: 'uppercase',
-              pointerEvents: 'none',
-              transition: 'opacity var(--transition-slow)',
+              textShadow: '0 2px 12px rgba(0, 0, 0, 0.9), 0 1px 4px rgba(0, 0, 0, 0.95)',
             }}
           >
-            <span>Scroll to experience</span>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </div>
-        )}
+            Scroll to experience
+          </span>
+          <svg
+            className="scroll-indicator-bob"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--color-gold)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.95))',
+            }}
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
       </div>
     </section>
   );

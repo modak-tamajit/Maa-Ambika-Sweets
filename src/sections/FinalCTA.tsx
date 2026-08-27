@@ -27,20 +27,20 @@ export default function FinalCTA() {
             alignItems: 'center',
           }}
         >
-          {/* Supplied Brand Logo - Prominent & Crisp (Enlarged) */}
+          {/* Supplied Brand Logo - Prominent & Crisp (+25% Enlarged) */}
           <div
             style={{
               position: 'relative',
-              width: 'clamp(150px, 22vw, 190px)',
-              height: 'clamp(150px, 22vw, 190px)',
-              marginBottom: '1.75rem',
+              width: 'clamp(190px, 28vw, 240px)',
+              height: 'clamp(190px, 28vw, 240px)',
+              marginBottom: '2rem',
             }}
           >
             <Image
               src="/brand/logo.png"
               alt={BUSINESS.name.english}
               fill
-              sizes="(max-width: 768px) 150px, 190px"
+              sizes="(max-width: 768px) 190px, 240px"
               style={{ objectFit: 'contain' }}
             />
           </div>
@@ -100,11 +100,27 @@ export default function FinalCTA() {
                 padding: '0.9rem 2rem',
                 backgroundColor: 'var(--color-cream)',
                 color: 'var(--color-maroon)',
+                border: '1px solid var(--color-cream)',
                 fontFamily: 'var(--font-body)',
                 fontSize: '0.95rem',
                 fontWeight: 600,
                 borderRadius: 'var(--radius-sm)',
                 transition: 'all var(--transition-fast)',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--color-gold)';
+                e.currentTarget.style.borderColor = 'var(--color-gold)';
+                e.currentTarget.style.color = 'var(--color-maroon-dark)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.35), 0 0 15px rgba(214, 166, 100, 0.25)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--color-cream)';
+                e.currentTarget.style.borderColor = 'var(--color-cream)';
+                e.currentTarget.style.color = 'var(--color-maroon)';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.2)';
               }}
             >
               <span>Enquire on WhatsApp</span>
@@ -137,7 +153,15 @@ export default function FinalCTA() {
                 fontWeight: 500,
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid rgba(245, 240, 232, 0.4)',
-                transition: 'all var(--transition-fast)',
+                transition: 'color var(--transition-fast), border-color var(--transition-fast)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--color-gold)';
+                e.currentTarget.style.borderColor = 'var(--color-gold)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--color-cream)';
+                e.currentTarget.style.borderColor = 'rgba(245, 240, 232, 0.4)';
               }}
             >
               View Shop Location

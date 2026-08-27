@@ -45,11 +45,11 @@ export default function HomePage() {
       {/* Section 2: Brand Introduction */}
       <BrandIntro />
 
-      {/* Section 3: Product Catalogue (data-driven) */}
-      <ProductCatalogue />
-
-      {/* Section 4: Our Story (Since 2000 in Kalna) */}
+      {/* Section 3: Our Story (Since 2000 in Kalna) */}
       <OurStory />
+
+      {/* Section 4: Product Catalogue (data-driven) */}
+      <ProductCatalogue />
 
       {/* Section 5: Why Maa Ambika (Craftsmanship & Purity) */}
       <WhyMaaAmbika />

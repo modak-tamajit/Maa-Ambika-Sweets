@@ -120,6 +120,10 @@ img, svg, video, canvas {
   padding-bottom: clamp(3.5rem, 7vw, 7.5rem);
 }
 
+section[id] {
+  scroll-margin-top: clamp(4.5rem, 8vw, 6rem);
+}
+
 /* Section Header */
 .section-header {
   text-align: center;
@@ -234,3 +238,18 @@ img, svg, video, canvas {
   outline: 2px solid var(--color-gold);
   outline-offset: 3px;
 }
+
+/* Hero Scroll Indicator Arrow Animation */
+@keyframes scrollBob {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(5px);
+  }
+}
+
+.scroll-indicator-bob {
+  animation: scrollBob 1.8s ease-in-out infinite;
+}
+

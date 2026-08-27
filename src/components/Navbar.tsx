@@ -8,13 +8,73 @@ import { BUSINESS } from '@/config/business';
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>('#hero');
 
-  // Scroll listener for sticky header elevation
+  // Scroll listener for sticky header elevation and active section scrollspy
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
+
+      // Check if user is near bottom of page -> activate Contact
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 80) {
+        setActiveSection('#enquiry');
+        return;
+      }
+
+      // Check if user is in hero viewport (at top of page)
+      if (window.scrollY < 350) {
+        setActiveSection('#hero');
+        return;
+      }
+
+      // Collect tracked sections with actual live DOM elements
+      const tracked = [
+        { id: '#hero', el: document.getElementById('hero') },
+        { id: '#story', el: document.getElementById('story') || document.getElementById('about') },
+        { id: '#catalogue', el: document.getElementById('catalogue') },
+        { id: '#celebrations', el: document.getElementById('celebrations') },
+        { id: '#location', el: document.getElementById('location') },
+        { id: '#enquiry', el: document.getElementById('enquiry') },
+      ];
+
+      // Sort by actual DOM vertical position
+      const valid = tracked
+        .filter((s): s is { id: string; el: HTMLElement } => !!s.el)
+        .map((s) => {
+          const rect = s.el.getBoundingClientRect();
+          return {
+            id: s.id,
+            top: rect.top,
+            bottom: rect.bottom,
+          };
+        });
+
+      // Find the section that occupies the viewport center / top reading line (180px from top)
+      const targetY = 180;
+      let active = '#hero';
+
+      for (const section of valid) {
+        if (section.top <= targetY && section.bottom > targetY) {
+          active = section.id;
+          break;
+        }
+      }
+
+      // Fallback: choose the lowest section whose top is above targetY
+      if (active === '#hero' && window.scrollY >= 350) {
+        for (let i = valid.length - 1; i >= 0; i--) {
+          if (valid[i].top <= targetY) {
+            active = valid[i].id;
+            break;
+          }
+        }
+      }
+
+      setActiveSection(active);
     };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -43,6 +103,33 @@ export default function Navbar() {
   const closeMenu = useCallback(() => {
     setMobileMenuOpen(false);
   }, []);
+
+  const handleNavClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    closeMenu();
+    if (href.startsWith('#')) {
+      e.preventDefault();
+      if (href === '#hero') {
+        if (window.scrollY > 800) {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        return;
+      }
+
+      const targetElement = document.querySelector(href);
+      if (targetElement) {
+        const headerOffset = 85;
+        const elementPosition = targetElement.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.scrollY - headerOffset;
+
+        window.scrollTo({
+          top: Math.max(0, offsetPosition),
+          behavior: 'smooth',
+        });
+      }
+    }
+  }, [closeMenu]);
 
   const navLinks = [
     { label: 'Home', href: '#hero' },
@@ -85,7 +172,7 @@ export default function Navbar() {
         {/* Brand Logo & Name */}
         <Link
           href="#hero"
-          onClick={closeMenu}
+          onClick={(e) => handleNavClick(e, '#hero')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -162,30 +249,54 @@ export default function Navbar() {
           className="desktop-nav"
           aria-label="Primary Desktop Navigation"
         >
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              style={{
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                color: '#F4E5CC',
-                letterSpacing: '0.03em',
-                transition: 'color var(--transition-fast)',
-                padding: '0.5rem 0',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--color-gold)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#F4E5CC';
-              }}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const isActive = activeSection === link.href;
+            return (
+              <Link
+                key={link.label}
+                href={link.href}
+                onClick={(e) => handleNavClick(e, link.href)}
+                style={{
+                  fontSize: '0.95rem',
+                  fontWeight: isActive ? 600 : 500,
+                  color: isActive ? 'var(--color-gold)' : '#F4E5CC',
+                  letterSpacing: '0.03em',
+                  transition: 'color var(--transition-fast)',
+                  padding: '0.5rem 0',
+                  position: 'relative',
+                  textShadow: isActive ? '0 0 12px rgba(214, 166, 100, 0.45)' : 'none',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--color-gold)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = '#F4E5CC';
+                  }
+                }}
+              >
+                {link.label}
+                {isActive && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      bottom: '0',
+                      left: '0',
+                      right: '0',
+                      height: '2px',
+                      backgroundColor: 'var(--color-gold)',
+                      borderRadius: '2px',
+                      boxShadow: '0 0 8px rgba(214, 166, 100, 0.8)',
+                    }}
+                    aria-hidden="true"
+                  />
+                )}
+              </Link>
+            );
+          })}
           <a
             href="#enquiry"
+            onClick={(e) => handleNavClick(e, '#enquiry')}
             className="btn-primary"
             style={{
               padding: '0.65rem 1.4rem',
@@ -302,30 +413,48 @@ export default function Navbar() {
               boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
             }}
           >
-            {navLinks.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                onClick={closeMenu}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  minHeight: '44px',
-                  fontSize: '1.05rem',
-                  fontWeight: 500,
-                  color: '#F4E5CC',
-                  padding: '0.65rem 0.5rem',
-                  borderBottom: '1px solid rgba(214, 166, 100, 0.1)',
-                  transition: 'color var(--transition-fast), background-color var(--transition-fast)',
-                  borderRadius: 'var(--radius-sm)',
-                }}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = activeSection === link.href;
+              return (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  onClick={(e) => handleNavClick(e, link.href)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    minHeight: '44px',
+                    fontSize: '1.05rem',
+                    fontWeight: isActive ? 600 : 500,
+                    color: isActive ? 'var(--color-gold)' : '#F4E5CC',
+                    backgroundColor: isActive ? 'rgba(214, 166, 100, 0.12)' : 'transparent',
+                    borderLeft: isActive ? '3px solid var(--color-gold)' : '3px solid transparent',
+                    padding: '0.65rem 0.75rem',
+                    borderBottom: '1px solid rgba(214, 166, 100, 0.1)',
+                    transition: 'color var(--transition-fast), background-color var(--transition-fast)',
+                    borderRadius: 'var(--radius-sm)',
+                  }}
+                >
+                  <span>{link.label}</span>
+                  {isActive && (
+                    <span
+                      style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--color-gold)',
+                        boxShadow: '0 0 6px var(--color-gold)',
+                      }}
+                      aria-hidden="true"
+                    />
+                  )}
+                </Link>
+              );
+            })}
             <a
               href="#enquiry"
-              onClick={closeMenu}
+              onClick={(e) => handleNavClick(e, '#enquiry')}
               className="btn-primary"
               style={{
                 marginTop: '1rem',

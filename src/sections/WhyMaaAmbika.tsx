@@ -34,18 +34,43 @@ const reasons = [
 export default function WhyMaaAmbika() {
   return (
     <section
+      id="why-ambika"
       className="section-padding"
       style={{
-        backgroundColor: 'var(--color-cream)',
-        borderTop: '1px solid var(--color-border-subtle)',
-        borderBottom: '1px solid var(--color-border-subtle)',
+        backgroundColor: 'var(--color-maroon)',
+        color: 'var(--color-cream)',
+        borderTop: '1px solid rgba(214, 166, 100, 0.2)',
+        borderBottom: '1px solid rgba(214, 166, 100, 0.2)',
+        position: 'relative',
       }}
     >
       <div className="container">
         <div className="section-header">
-          <span className="section-tag">The Ambika Standard</span>
-          <h2 className="section-title">Why Patrons Choose Us</h2>
-          <p className="section-subtitle">
+          <span
+            className="section-tag"
+            style={{ color: 'var(--color-gold)' }}
+          >
+            The Ambika Standard
+          </span>
+          <h2
+            style={{
+              fontSize: 'clamp(2rem, 3.5vw, 2.8rem)',
+              color: '#FAF4E5',
+              fontWeight: 500,
+              marginBottom: '0.75rem',
+            }}
+          >
+            Why Patrons Choose Us
+          </h2>
+          <p
+            style={{
+              color: 'rgba(250, 244, 229, 0.85)',
+              fontSize: '1rem',
+              lineHeight: 1.6,
+              maxWidth: '640px',
+              margin: '0 auto',
+            }}
+          >
             Uncompromising principles of quality, hygiene, and authentic Bengali confection.
           </p>
         </div>
@@ -60,22 +85,39 @@ export default function WhyMaaAmbika() {
           {reasons.map((reason) => (
             <div
               key={reason.number}
-              className="card-base"
               style={{
                 display: 'flex',
                 flexDirection: 'column',
                 height: '100%',
-                backgroundColor: 'var(--color-cream-light)',
+                backgroundColor: 'rgba(42, 14, 16, 0.65)',
+                border: '1px solid rgba(214, 166, 100, 0.22)',
+                borderRadius: 'var(--radius-md)',
+                padding: 'clamp(1.25rem, 3vw, 2rem)',
+                backdropFilter: 'blur(6px)',
+                WebkitBackdropFilter: 'blur(6px)',
+                transition: 'border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast)',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-gold)';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+                e.currentTarget.style.boxShadow = '0 8px 30px rgba(0, 0, 0, 0.4), 0 0 15px rgba(214, 166, 100, 0.12)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(214, 166, 100, 0.22)';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.25)';
               }}
             >
               <span
                 style={{
                   fontFamily: 'var(--font-heading)',
-                  fontSize: '1.75rem',
+                  fontSize: '1.85rem',
                   fontWeight: 600,
-                  color: 'var(--color-gold-muted)',
+                  color: 'var(--color-gold)',
                   marginBottom: '0.75rem',
                   display: 'block',
+                  lineHeight: 1,
                 }}
               >
                 {reason.number}
@@ -83,8 +125,9 @@ export default function WhyMaaAmbika() {
               <h3
                 style={{
                   fontSize: '1.25rem',
-                  color: 'var(--color-maroon)',
+                  color: '#FAF4E5',
                   marginBottom: '0.25rem',
+                  fontWeight: 500,
                 }}
               >
                 {reason.title}
@@ -93,18 +136,19 @@ export default function WhyMaaAmbika() {
                 className="bengali-text"
                 style={{
                   display: 'block',
-                  fontSize: '0.85rem',
-                  color: 'var(--color-muted)',
-                  marginBottom: '0.75rem',
+                  fontSize: '0.88rem',
+                  color: '#E8D4B0',
+                  opacity: 0.95,
+                  marginBottom: '0.9rem',
                 }}
               >
                 {reason.bengali}
               </span>
               <p
                 style={{
-                  fontSize: '0.9rem',
-                  lineHeight: 1.6,
-                  color: 'var(--color-text-light)',
+                  fontSize: '0.92rem',
+                  lineHeight: 1.65,
+                  color: 'rgba(250, 244, 229, 0.8)',
                   marginTop: 'auto',
                 }}
               >
