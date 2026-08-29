@@ -11,15 +11,37 @@ export interface Product {
  
 export const products: Product[] = [
   {
+  id: 'rasogolla',
+  nameEnglish: 'Rasogolla',
+  nameBengali: 'রসগোল্লা',
+  descriptionEnglish:
+    'Soft, spongy chhena balls soaked in light sugar syrup, capturing the timeless taste of Bengal.',
+  descriptionBengali:
+    'হালকা চিনির রসে ভেজানো নরম ও তুলতুলে ছানার রসগোল্লা, বাংলার চিরন্তন স্বাদের এক মিষ্টি ঐতিহ্য।',
+  image: 'Rossogolla.png',
+  category: '',
+},
+  {
+  id: 'makha-sandesh',
+  nameEnglish: 'Makha Sondesh',
+  nameBengali: 'মাখা সন্দেশ',
+  descriptionEnglish:
+    'Freshly prepared chhena (Cottage Cheese) gently mixed with sugar to create a soft, crumbly and delicately sweet Bengali classic.',
+  descriptionBengali:
+    'তাজা ছানা ও চিনি আলতো করে মিশিয়ে তৈরি নরম, ঝুরঝুরে ও মিষ্টি স্বাদের এক চিরন্তন বাঙালি ঐতিহ্য।',
+  image: 'Makha_Sondesh.png',
+  category: '',
+},
+{
     id: 'nolen-gur-rasogolla',
     nameEnglish: 'Nolen Gur Rasogolla',
     nameBengali: 'নলেন গুড়ের রসগোল্লা',
     descriptionEnglish:
-      'Soft, spongy chhena balls delicately soaked in fragrant Nolen Gur syrup (Date Palm Jaggery).',
+      'Soft, spongy chhena balls (Cottage Cheese Balls) delicately soaked in fragrant Nolen Gur syrup (Date Palm Jaggery).',
     descriptionBengali:
       'সুগন্ধি নলেন গুড়ের রসে ভেজানো তুলতুলে ও নরম ছানার রসগোল্লা।',
     image: 'Nolen_Gur_Rasogolla.png',
-    category: 'Syrup-based',
+    category: 'Winters Only',
   },
 
   {  
@@ -27,10 +49,10 @@ export const products: Product[] = [
     nameEnglish: 'Nolen Gur Sandesh',
     nameBengali: 'নলেন গুড় সন্দেশ',
     descriptionEnglish:
-      'A traditional Bengali sweet made with fresh chhena and flavored with Nolen Gur (Date Palm Jaggery).',
+      'A traditional Bengali sweet made with fresh chhena (Cottage Cheese) and flavored with Nolen Gur (Date Palm Jaggery).',
     descriptionBengali:
       'তাজা ছানা দিয়ে তৈরি একটি ঐতিহ্যবাহী বাঙালি মিষ্টি, যা নলেন গুড়ের স্বাদে ভরা।',
-    image: 'Nolen_Gur_Sandesh.png',
-    category: 'Chhena-based', 
+    image: 'Nolen_Gur_Makha_Sondesh.png',
+    category: 'Winters Only',
   }
 ];
