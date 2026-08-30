@@ -3,8 +3,8 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 
 const TOTAL_FRAMES = 250;
-const MOBILE_CACHE_LIMIT = 24;
-const DESKTOP_CACHE_LIMIT = 45;
+const MOBILE_CACHE_LIMIT = 25;
+const DESKTOP_CACHE_LIMIT = 50;
 const MAX_CONCURRENT = 5;
 
 interface HeroSequenceProps {
