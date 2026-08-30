@@ -3,9 +3,12 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 
 const TOTAL_FRAMES = 250;
-const MOBILE_CACHE_LIMIT = 35;
-const DESKTOP_CACHE_LIMIT = 70;
-const MAX_CONCURRENT = 8;
+// JPEGs are small on the network, but each decoded 1280×720 bitmap occupies
+// roughly 3.5 MB. Keep the working set modest so production devices do not
+// hit memory pressure and start janking while scrolling.
+const MOBILE_CACHE_LIMIT = 16;
+const DESKTOP_CACHE_LIMIT = 36;
+const MAX_CONCURRENT = 4;
 
 interface HeroSequenceProps {
   onInitialFramesReady?: () => void;
@@ -39,7 +42,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const prefersReducedMotionRef = useRef(false);
   const coverDimsRef = useRef({ renderWidth: 0, renderHeight: 0, offsetX: 0, offsetY: 0 });
   const scrollRafIdRef = useRef<number | null>(null);
-  const drawRafIdRef = useRef<number | null>(null);
   const idleFillTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const insertSortedKey = (n: number) => {
@@ -140,7 +142,10 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
 
     if (supportsImageBitmap) {
       fetch(`/hero/${frameNumber}.jpg`, { signal: controller.signal })
-        .then((res) => res.blob())
+        .then((res) => {
+          if (!res.ok) throw new Error(`Unable to load hero frame ${frameNumber}`);
+          return res.blob();
+        })
         .then((blob) => createImageBitmap(blob))
         .then((bmp) => settle(bmp))
         .catch(() => settle(null));
@@ -165,8 +170,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     inFlight.current.forEach((controller, frame) => {
       if (Math.abs(frame - target) > relevantRadius) {
         controller.abort();
-        inFlight.current.delete(frame);
-        activeCount.current--;
       }
     });
 
@@ -280,17 +283,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       if (idleFillTimeoutRef.current) clearTimeout(idleFillTimeoutRef.current);
     };
   }, [fetchFrame, updateLayoutAndCanvas, drawFrame, pumpQueue, idleFill, onInitialFramesReady]);
-
-  useEffect(() => {
-    const loop = () => {
-      drawFrame(targetFrameRef.current);
-      drawRafIdRef.current = requestAnimationFrame(loop);
-    };
-    drawRafIdRef.current = requestAnimationFrame(loop);
-    return () => {
-      if (drawRafIdRef.current !== null) cancelAnimationFrame(drawRafIdRef.current);
-    };
-  }, [drawFrame]);
 
   useEffect(() => {
     const handleScroll = () => {
