@@ -62,7 +62,7 @@ export const BUSINESS = {
     title: 'Maa Ambika Sweets',
     description:
       'Maa Ambika Sweets — authentic Bengali sweets in Rameswarpur, Kalna, Purba Bardhaman, West Bengal. Quality sweets for everyday enjoyment and celebrations since 2000.',
-    canonical: 'https://your-domain.com',
+    canonical: 'https://maaambikasweets.com',
   },
 } as const;
 

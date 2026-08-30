@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { BUSINESS } from '@/config/business';
@@ -10,72 +10,94 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('#hero');
 
-  // Scroll listener for sticky header elevation and active section scrollspy
+  const isScrolledRef = useRef(false);
+  const activeSectionRef = useRef('#hero');
+
+  // Optimized scroll listener using rAF batching and cached section queries
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+    let rafId: number | null = null;
+    let cachedSections: { id: string; el: HTMLElement }[] = [];
 
-      // Check if user is near bottom of page -> activate Contact
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 80) {
-        setActiveSection('#enquiry');
+    const updateSectionsCache = () => {
+      const trackedIds = ['#hero', '#story', '#catalogue', '#celebrations', '#location', '#enquiry'];
+      cachedSections = trackedIds
+        .map((id) => {
+          const el = id === '#story' 
+            ? (document.getElementById('story') || document.getElementById('about'))
+            : document.getElementById(id.replace('#', ''));
+          return el ? { id, el } : null;
+        })
+        .filter((item): item is { id: string; el: HTMLElement } => item !== null);
+    };
+
+    updateSectionsCache();
+
+    const processScroll = () => {
+      rafId = null;
+      const currentScrollY = window.scrollY;
+      const shouldBeScrolled = currentScrollY > 20;
+
+      if (shouldBeScrolled !== isScrolledRef.current) {
+        isScrolledRef.current = shouldBeScrolled;
+        setIsScrolled(shouldBeScrolled);
+      }
+
+      // Fast-path: Top of page is always hero
+      if (currentScrollY < 350) {
+        if (activeSectionRef.current !== '#hero') {
+          activeSectionRef.current = '#hero';
+          setActiveSection('#hero');
+        }
         return;
       }
 
-      // Check if user is in hero viewport (at top of page)
-      if (window.scrollY < 350) {
-        setActiveSection('#hero');
+      // Fast-path: Bottom of page is contact
+      if (window.innerHeight + currentScrollY >= document.documentElement.scrollHeight - 80) {
+        if (activeSectionRef.current !== '#enquiry') {
+          activeSectionRef.current = '#enquiry';
+          setActiveSection('#enquiry');
+        }
         return;
       }
 
-      // Collect tracked sections with actual live DOM elements
-      const tracked = [
-        { id: '#hero', el: document.getElementById('hero') },
-        { id: '#story', el: document.getElementById('story') || document.getElementById('about') },
-        { id: '#catalogue', el: document.getElementById('catalogue') },
-        { id: '#celebrations', el: document.getElementById('celebrations') },
-        { id: '#location', el: document.getElementById('location') },
-        { id: '#enquiry', el: document.getElementById('enquiry') },
-      ];
+      // If sections cache is empty, rebuild it
+      if (cachedSections.length === 0) {
+        updateSectionsCache();
+      }
 
-      // Sort by actual DOM vertical position
-      const valid = tracked
-        .filter((s): s is { id: string; el: HTMLElement } => !!s.el)
-        .map((s) => {
-          const rect = s.el.getBoundingClientRect();
-          return {
-            id: s.id,
-            top: rect.top,
-            bottom: rect.bottom,
-          };
-        });
-
-      // Find the section that occupies the viewport center / top reading line (180px from top)
       const targetY = 180;
-      let active = '#hero';
+      let newActive = '#hero';
 
-      for (const section of valid) {
-        if (section.top <= targetY && section.bottom > targetY) {
-          active = section.id;
+      for (let i = cachedSections.length - 1; i >= 0; i--) {
+        const item = cachedSections[i];
+        const top = item.el.getBoundingClientRect().top;
+        if (top <= targetY) {
+          newActive = item.id;
           break;
         }
       }
 
-      // Fallback: choose the lowest section whose top is above targetY
-      if (active === '#hero' && window.scrollY >= 350) {
-        for (let i = valid.length - 1; i >= 0; i--) {
-          if (valid[i].top <= targetY) {
-            active = valid[i].id;
-            break;
-          }
-        }
+      if (newActive !== activeSectionRef.current) {
+        activeSectionRef.current = newActive;
+        setActiveSection(newActive);
       }
+    };
 
-      setActiveSection(active);
+    const handleScroll = () => {
+      if (rafId === null) {
+        rafId = requestAnimationFrame(processScroll);
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', updateSectionsCache, { passive: true });
     handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', updateSectionsCache);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   // Close mobile menu on Escape key press
@@ -109,11 +131,7 @@ export default function Navbar() {
     if (href.startsWith('#')) {
       e.preventDefault();
       if (href === '#hero') {
-        if (window.scrollY > 800) {
-          window.scrollTo({ top: 0, behavior: 'instant' });
-        } else {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
 
@@ -324,55 +342,55 @@ export default function Navbar() {
           </a>
         </nav>
 
-        {/* Mobile Menu Toggle Button (Strict 44x44px minimum touch target) */}
+        {/* Mobile Menu Toggle Button (Refined scale, smaller than shop logo) */}
         <button
           type="button"
           className="mobile-menu-btn"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-expanded={mobileMenuOpen}
           aria-controls="mobile-navigation-drawer"
-          aria-label={mobileMenuOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
+          aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '44px',
-            height: '44px',
-            minWidth: '44px',
-            minHeight: '44px',
-            color: 'var(--color-gold)',
+            width: '40px',
+            height: '40px',
+            minWidth: '40px',
+            minHeight: '40px',
+            padding: '0',
             borderRadius: 'var(--radius-sm)',
-            border: '1px solid rgba(214, 166, 100, 0.3)',
+            border: '1px solid rgba(214, 166, 100, 0.4)',
             backgroundColor: mobileMenuOpen ? 'rgba(214, 166, 100, 0.15)' : 'transparent',
-            transition: 'background-color var(--transition-fast), border-color var(--transition-fast)',
+            boxShadow: mobileMenuOpen ? '0 0 10px rgba(214, 166, 100, 0.25)' : 'none',
+            cursor: 'pointer',
+            transition: 'border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast)',
             touchAction: 'manipulation',
             flexShrink: 0,
           }}
         >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
+          <div
+            style={{
+              position: 'relative',
+              width: '24px',
+              height: '26px',
+              transition: 'transform var(--transition-fast)',
+              transform: mobileMenuOpen ? 'rotate(-10deg) scale(0.92)' : 'none',
+              filter: 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3))',
+            }}
           >
-            {mobileMenuOpen ? (
-              <>
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </>
-            ) : (
-              <>
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </>
-            )}
-          </svg>
+            <Image
+              src="/brand/menu-pot.png"
+              alt=""
+              aria-hidden="true"
+              fill
+              sizes="26px"
+              style={{
+                objectFit: 'contain',
+              }}
+              priority
+            />
+          </div>
         </button>
       </div>
 
@@ -437,18 +455,6 @@ export default function Navbar() {
                   }}
                 >
                   <span>{link.label}</span>
-                  {isActive && (
-                    <span
-                      style={{
-                        width: '6px',
-                        height: '6px',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--color-gold)',
-                        boxShadow: '0 0 6px var(--color-gold)',
-                      }}
-                      aria-hidden="true"
-                    />
-                  )}
                 </Link>
               );
             })}

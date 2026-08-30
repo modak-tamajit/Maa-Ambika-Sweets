@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 
 const TOTAL_FRAMES = 250;
+const MOBILE_CACHE_LIMIT = 35;
+const DESKTOP_CACHE_LIMIT = 65;
 
 interface HeroSequenceProps {
   onInitialFramesReady?: () => void;
@@ -11,24 +13,65 @@ interface HeroSequenceProps {
 export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const indicatorRef = useRef<HTMLDivElement>(null);
   
-  // Cache of loaded and decoded HTMLImageElements
+  // Decoded image cache (Frame number -> HTMLImageElement)
   const framesCache = useRef<Map<number, HTMLImageElement>>(new Map());
   
   // In-flight loading promises to prevent duplicate fetches
   const loadingFrames = useRef<Set<number>>(new Set());
 
-  const currentFrameRef = useRef<number>(1);
-  const targetFrameRef = useRef<number>(1);
-  const isRenderingRef = useRef<boolean>(false);
-  const renderLoopRef = useRef<() => void>(() => {});
+  // Cached layout & rendering measurements to eliminate layout thrashing
+  const scrollableDistanceRef = useRef<number>(0);
+  const isMobileRef = useRef<boolean>(false);
   const lastDrawnFrameRef = useRef<number>(-1);
   const scrollDirectionRef = useRef<number>(1); // 1 = down, -1 = up
   const lastScrollYRef = useRef<number>(0);
+  const isIndicatorVisibleRef = useRef<boolean>(true);
+  const targetFrameRef = useRef<number>(1);
 
-  const [hasStartedScroll, setHasStartedScroll] = useState<boolean>(false);
+  // Pre-calculated cover dimensions cache (updated only on resize)
+  const coverDimsRef = useRef<{
+    renderWidth: number;
+    renderHeight: number;
+    offsetX: number;
+    offsetY: number;
+  }>({
+    renderWidth: 0,
+    renderHeight: 0,
+    offsetX: 0,
+    offsetY: 0,
+  });
 
-  // Helper to load and decode a single frame with maximum priority
+  // RAF scheduling flag for scroll-coalescing
+  const scrollRafIdRef = useRef<number | null>(null);
+
+  // Evict frames farthest from current scroll position to keep mobile memory lean & prevent GC pauses
+  const pruneCache = useCallback((currentCenter: number) => {
+    const limit = isMobileRef.current ? MOBILE_CACHE_LIMIT : DESKTOP_CACHE_LIMIT;
+    const cache = framesCache.current;
+    
+    if (cache.size <= limit) return;
+
+    // Sort cached frame numbers by distance from currentCenter (Frame 1 is always preserved)
+    const keys = Array.from(cache.keys()).filter((f) => f !== 1);
+    keys.sort((a, b) => Math.abs(b - currentCenter) - Math.abs(a - currentCenter));
+
+    // Release and evict farthest frames until within memory limit
+    const toEvictCount = cache.size - limit;
+    for (let i = 0; i < toEvictCount && i < keys.length; i++) {
+      const frameToEvict = keys[i];
+      const img = cache.get(frameToEvict);
+      if (img) {
+        img.onload = null;
+        img.onerror = null;
+        img.src = ''; // Release bitmap from memory
+      }
+      cache.delete(frameToEvict);
+    }
+  }, []);
+
+  // Safe deduplicated frame loader
   const loadFrame = useCallback((frameNumber: number, priority: boolean = false): Promise<HTMLImageElement | null> => {
     if (frameNumber < 1 || frameNumber > TOTAL_FRAMES) return Promise.resolve(null);
     if (framesCache.current.has(frameNumber)) {
@@ -46,65 +89,100 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
         (img as HTMLImageElement & { fetchPriority: string }).fetchPriority = 'high';
       }
 
-      const onDone = () => {
-        framesCache.current.set(frameNumber, img);
+      let resolved = false;
+      const finalize = (success: boolean) => {
+        if (resolved) return;
+        resolved = true;
         loadingFrames.current.delete(frameNumber);
-        resolve(img);
+        if (success) {
+          framesCache.current.set(frameNumber, img);
+          resolve(img);
+        } else {
+          resolve(null);
+        }
       };
 
-      img.onload = onDone;
-      img.onerror = () => {
-        loadingFrames.current.delete(frameNumber);
-        resolve(null);
-      };
-
+      img.onload = () => finalize(true);
+      img.onerror = () => finalize(false);
       img.src = `/hero/${frameNumber}.jpg`;
 
       // Trigger asynchronous decode if supported
       if (typeof img.decode === 'function') {
-        img.decode().then(onDone).catch(() => {
+        img.decode().then(() => finalize(true)).catch(() => {
           // Handled by img.onload / img.onerror fallback
         });
       }
     });
   }, []);
 
-  // Proactive directional preloader: aggressively loads ahead in scroll direction
-  const preloadProximityFrames = useCallback((centerFrame: number) => {
+  // Directional streaming preloader (prioritizes upcoming frames in the direction of scroll)
+  const preloadSurroundingFrames = useCallback((centerFrame: number) => {
     const isDown = scrollDirectionRef.current >= 0;
-    
-    // Look ahead 25 frames in scroll direction, and 8 frames behind
-    const offsets: number[] = [];
+    const lookAhead = isMobileRef.current ? 12 : 18;
+    const lookBehind = isMobileRef.current ? 3 : 6;
+
+    const targets: number[] = [];
     if (isDown) {
-      for (let i = 0; i <= 25; i++) offsets.push(i);
-      for (let i = -1; i >= -8; i--) offsets.push(i);
+      for (let i = 1; i <= lookAhead; i++) targets.push(centerFrame + i);
+      for (let i = -1; i >= -lookBehind; i--) targets.push(centerFrame + i);
     } else {
-      for (let i = 0; i >= -25; i--) offsets.push(i);
-      for (let i = 1; i <= 8; i++) offsets.push(i);
+      for (let i = -1; i >= -lookAhead; i--) targets.push(centerFrame + i);
+      for (let i = 1; i <= lookBehind; i++) targets.push(centerFrame + i);
     }
 
-    offsets.forEach((offset) => {
-      const target = centerFrame + offset;
+    targets.forEach((target, idx) => {
       if (target >= 1 && target <= TOTAL_FRAMES && !framesCache.current.has(target)) {
-        loadFrame(target, Math.abs(offset) <= 5);
+        loadFrame(target, idx <= 2);
       }
     });
-  }, [loadFrame]);
 
-  // Canvas draw function with edge-to-edge FULL COVER (eliminates pillarboxes & letterboxes)
+    pruneCache(centerFrame);
+  }, [loadFrame, pruneCache]);
+
+  // Recalculate cover fit dimensions when canvas changes
+  const updateCoverDimensions = useCallback((width: number, height: number) => {
+    if (width === 0 || height === 0) return;
+
+    // Standard 1280x720 16:9 hero aspect ratio
+    const imgAspect = 1280 / 720;
+    const canvasAspect = width / height;
+
+    let renderWidth: number;
+    let renderHeight: number;
+    let offsetX: number;
+    let offsetY: number;
+
+    if (canvasAspect > imgAspect) {
+      renderWidth = width;
+      renderHeight = width / imgAspect;
+      offsetX = 0;
+      offsetY = (height - renderHeight) / 2;
+    } else {
+      renderHeight = height;
+      renderWidth = height * imgAspect;
+      offsetX = (width - renderWidth) / 2;
+      offsetY = 0;
+    }
+
+    coverDimsRef.current = {
+      renderWidth,
+      renderHeight,
+      offsetX,
+      offsetY,
+    };
+  }, []);
+
+  // Direct, zero-overhead canvas draw for exact frame
   const drawFrame = useCallback((frameNum: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-
-    // Find requested frame or closest available neighbor
+    // Retrieve requested frame or nearest available neighbor within +/- 20 frames
     let imgToDraw: HTMLImageElement | undefined = framesCache.current.get(frameNum);
     if (!imgToDraw) {
-      for (let distance = 1; distance <= TOTAL_FRAMES; distance++) {
+      for (let distance = 1; distance <= 20; distance++) {
         const prev = frameNum - distance;
         const next = frameNum + distance;
         if (prev >= 1 && framesCache.current.has(prev)) {
@@ -120,130 +198,75 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
 
     if (!imgToDraw || !imgToDraw.complete || imgToDraw.naturalWidth === 0) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
-    if (width === 0 || height === 0) return;
+    const { renderWidth, renderHeight, offsetX, offsetY } = coverDimsRef.current;
+    if (renderWidth === 0 || renderHeight === 0) return;
 
-    // Calculate edge-to-edge "COVER" fit
-    const imgWidth = imgToDraw.naturalWidth || 1280;
-    const imgHeight = imgToDraw.naturalHeight || 720;
-    const imgAspect = imgWidth / imgHeight;
-    const canvasAspect = width / height;
-
-    let renderWidth: number;
-    let renderHeight: number;
-    let offsetX: number;
-    let offsetY: number;
-
-    if (canvasAspect > imgAspect) {
-      // Screen is wider than image (Widescreen desktop/laptop): match full width, center vertically
-      renderWidth = width;
-      renderHeight = width / imgAspect;
-      offsetX = 0;
-      offsetY = (height - renderHeight) / 2;
-    } else {
-      // Screen is taller than image (Mobile portrait & tablets): match full height, center horizontally
-      renderHeight = height;
-      renderWidth = height * imgAspect;
-      offsetX = (width - renderWidth) / 2;
-      offsetY = 0;
-    }
-
-    // Render full-bleed edge to edge
     ctx.drawImage(imgToDraw, offsetX, offsetY, renderWidth, renderHeight);
     lastDrawnFrameRef.current = frameNum;
   }, []);
 
-  // Continuous visual smoothing render loop via requestAnimationFrame (Scroll-Velocity Responsive)
-  const renderLoop = useCallback(() => {
-    const target = targetFrameRef.current;
-    const current = currentFrameRef.current;
-
-    const diff = target - current;
-    
-    // Dynamic smooth lerp: directly tracks user's scroll speed with organic damping.
-    // If delta is large (jumping between sections or clicking nav links), snap immediately to eliminate chaotic fast-rewinds.
-    if (Math.abs(diff) > 8) {
-      currentFrameRef.current = target;
-    } else if (Math.abs(diff) < 0.05) {
-      currentFrameRef.current = target;
-    } else {
-      currentFrameRef.current += diff * 0.25;
-    }
-
-    const roundedFrame = Math.round(currentFrameRef.current);
-    const clampedFrame = Math.max(1, Math.min(TOTAL_FRAMES, roundedFrame));
-
-    if (clampedFrame !== lastDrawnFrameRef.current) {
-      drawFrame(clampedFrame);
-    }
-
-    // Preload frames in direction of motion
-    preloadProximityFrames(clampedFrame);
-
-    // Keep running until frame counter reaches target
-    if (Math.abs(target - currentFrameRef.current) >= 0.01) {
-      requestAnimationFrame(() => {
-        renderLoopRef.current();
-      });
-    } else {
-      isRenderingRef.current = false;
-    }
-  }, [drawFrame, preloadProximityFrames]);
-
-  useEffect(() => {
-    renderLoopRef.current = renderLoop;
-  }, [renderLoop]);
-
-  const requestRender = useCallback(() => {
-    if (!isRenderingRef.current) {
-      isRenderingRef.current = true;
-      requestAnimationFrame(() => {
-        renderLoopRef.current();
-      });
-    }
-  }, []);
-
-  // Precise HiDPI Retina Canvas Resizing
-  const resizeCanvas = useCallback(() => {
+  // HiDPI Retina Canvas Resizing with layout caching
+  const updateLayoutAndCanvas = useCallback(() => {
+    const container = containerRef.current;
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!container || !canvas) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2.0);
-    const rect = canvas.getBoundingClientRect();
+    isMobileRef.current = window.innerWidth < 768;
 
-    if (rect.width > 0 && rect.height > 0) {
-      canvas.width = Math.round(rect.width * dpr);
-      canvas.height = Math.round(rect.height * dpr);
-      drawFrame(Math.round(currentFrameRef.current));
+    // Cache total scrollable distance for the 380vh hero section
+    const containerHeight = container.offsetHeight || window.innerHeight * 3.8;
+    scrollableDistanceRef.current = Math.max(1, containerHeight - window.innerHeight);
+
+    // Optimized DPR: 1.5x on mobile, 2.0x on desktop for optimal GPU fill rate
+    const maxDpr = isMobileRef.current ? 1.5 : 2.0;
+    const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
+
+    const clientWidth = window.innerWidth;
+    const clientHeight = window.innerHeight;
+
+    const pixelWidth = Math.round(clientWidth * dpr);
+    const pixelHeight = Math.round(clientHeight * dpr);
+
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+      
+      const ctx = canvas.getContext('2d', { alpha: false });
+      if (ctx) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'medium'; // Fast bilinear scaling for high frame rates
+      }
+
+      updateCoverDimensions(pixelWidth, pixelHeight);
+      drawFrame(targetFrameRef.current);
     }
-  }, [drawFrame]);
+  }, [drawFrame, updateCoverDimensions]);
 
-  // Progressive streaming: Load Frame 1 first to show immediately, then buffer the rest
+  // Initial streaming bootstrap: Frame 1 immediately, then immediate buffer
   useEffect(() => {
     let isMounted = true;
 
-    const initialLoad = async () => {
-      // 1. Load Frame 1 with high priority
+    const bootstrap = async () => {
+      // 1. Load Frame 1 immediately with high priority
       await loadFrame(1, true);
 
       if (isMounted) {
-        resizeCanvas();
+        updateLayoutAndCanvas();
         drawFrame(1);
         if (onInitialFramesReady) {
           onInitialFramesReady();
         }
       }
 
-      // 2. Load immediate scroll buffer of frames 2-30
-      const initialBuffer = Array.from({ length: 29 }, (_, i) => i + 2);
-      await Promise.all(initialBuffer.map((f) => loadFrame(f, true)));
+      // 2. Buffer immediate startup frames (2 to 15)
+      const startupBuffer = Array.from({ length: 14 }, (_, i) => i + 2);
+      await Promise.all(startupBuffer.map((f) => loadFrame(f, true)));
 
-      // 3. Progressively load remaining frames (31 to 250) in small controlled chunks
-      for (let f = 31; f <= TOTAL_FRAMES; f += 5) {
+      // 3. Progressively load background chunks with idle yields
+      for (let f = 16; f <= (isMobileRef.current ? 45 : 80); f += 4) {
         if (!isMounted) break;
         const chunk = [];
-        for (let j = 0; j < 5 && f + j <= TOTAL_FRAMES; j++) {
+        for (let j = 0; j < 4 && f + j <= TOTAL_FRAMES; j++) {
           if (!framesCache.current.has(f + j)) {
             chunk.push(loadFrame(f + j, false));
           }
@@ -251,81 +274,85 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
         if (chunk.length > 0) {
           await Promise.all(chunk);
         }
-        await new Promise((r) => setTimeout(r, 20));
+        await new Promise((r) => setTimeout(r, 40));
       }
     };
 
-    initialLoad();
+    bootstrap();
 
     return () => {
       isMounted = false;
     };
-  }, [loadFrame, resizeCanvas, drawFrame, onInitialFramesReady]);
+  }, [loadFrame, updateLayoutAndCanvas, drawFrame, onInitialFramesReady]);
 
-  // Scroll listener with velocity & direction tracking
+  // Direct 1:1 Scroll-Coupled Render Handler (Zero lerp lag, Zero timer, Zero work when idle)
   useEffect(() => {
     const handleScroll = () => {
-      const container = containerRef.current;
-      if (!container) return;
+      if (scrollRafIdRef.current !== null) return;
 
-      const currentScrollY = window.scrollY;
-      scrollDirectionRef.current = currentScrollY >= lastScrollYRef.current ? 1 : -1;
-      lastScrollYRef.current = currentScrollY;
+      // Consolidate scroll events to browser animation frame (60Hz / 90Hz / 120Hz native refresh rate)
+      scrollRafIdRef.current = requestAnimationFrame(() => {
+        scrollRafIdRef.current = null;
 
-      const rect = container.getBoundingClientRect();
-      const scrollableDistance = rect.height - window.innerHeight;
+        const currentScrollY = window.scrollY;
+        scrollDirectionRef.current = currentScrollY >= lastScrollYRef.current ? 1 : -1;
+        lastScrollYRef.current = currentScrollY;
 
-      if (scrollableDistance <= 0) return;
+        const scrollableDistance = scrollableDistanceRef.current;
+        if (scrollableDistance <= 0) return;
 
-      const scrolled = -rect.top;
-      const progress = Math.max(0, Math.min(1, scrolled / scrollableDistance));
+        // Direct normalized scroll progress (0.0 to 1.0)
+        const progress = Math.max(0, Math.min(1, currentScrollY / scrollableDistance));
 
-      if (progress > 0.005) {
-        if (!hasStartedScroll) {
-          setHasStartedScroll(true);
+        // Update floating scroll indicator directly via DOM ref without React re-renders
+        const shouldShowIndicator = progress <= 0.005;
+        if (shouldShowIndicator !== isIndicatorVisibleRef.current && indicatorRef.current) {
+          isIndicatorVisibleRef.current = shouldShowIndicator;
+          indicatorRef.current.style.opacity = shouldShowIndicator ? '1' : '0';
+          indicatorRef.current.style.transform = shouldShowIndicator
+            ? 'translateX(-50%) translateY(0)'
+            : 'translateX(-50%) translateY(10px)';
+          indicatorRef.current.setAttribute('aria-hidden', (!shouldShowIndicator).toString());
         }
-      } else {
-        if (hasStartedScroll) {
-          setHasStartedScroll(false);
+
+        // Direct 1:1 linear mapping to current frame
+        const exactFrame = Math.max(1, Math.min(TOTAL_FRAMES, Math.floor(progress * (TOTAL_FRAMES - 1)) + 1));
+        targetFrameRef.current = exactFrame;
+
+        // Render target frame immediately
+        if (exactFrame !== lastDrawnFrameRef.current) {
+          drawFrame(exactFrame);
+          preloadSurroundingFrames(exactFrame);
         }
-      }
-
-      // Direct linear frame mapping across all 250 frames
-      const calculatedTarget = Math.floor(progress * (TOTAL_FRAMES - 1)) + 1;
-      targetFrameRef.current = Math.max(1, Math.min(TOTAL_FRAMES, calculatedTarget));
-
-      // Instant snap when reaching top of page
-      if (progress === 0) {
-        currentFrameRef.current = 1;
-        targetFrameRef.current = 1;
-        drawFrame(1);
-      } else {
-        requestRender();
-      }
+      });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', resizeCanvas, { passive: true });
-    window.addEventListener('orientationchange', resizeCanvas, { passive: true });
+    window.addEventListener('resize', updateLayoutAndCanvas, { passive: true });
+    window.addEventListener('orientationchange', updateLayoutAndCanvas, { passive: true });
 
-    // Also use ResizeObserver for dynamic container monitoring
     let resizeObserver: ResizeObserver | null = null;
     if (containerRef.current && typeof ResizeObserver !== 'undefined') {
       resizeObserver = new ResizeObserver(() => {
-        resizeCanvas();
+        updateLayoutAndCanvas();
       });
       resizeObserver.observe(containerRef.current);
     }
 
+    updateLayoutAndCanvas();
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', resizeCanvas);
-      window.removeEventListener('orientationchange', resizeCanvas);
+      window.removeEventListener('resize', updateLayoutAndCanvas);
+      window.removeEventListener('orientationchange', updateLayoutAndCanvas);
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
+      if (scrollRafIdRef.current !== null) {
+        cancelAnimationFrame(scrollRafIdRef.current);
+      }
     };
-  }, [hasStartedScroll, requestRender, resizeCanvas]);
+  }, [drawFrame, preloadSurroundingFrames, updateLayoutAndCanvas]);
 
   return (
     <section
@@ -333,7 +360,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       ref={containerRef}
       style={{
         position: 'relative',
-        height: '380vh', // Calibrated 380vh scroll height for smooth, responsive 250-frame pacing
+        height: '380vh',
         backgroundColor: 'var(--color-cream)',
       }}
     >
@@ -350,15 +377,14 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
           aria-label="Maa Ambika Sweets handcrafted Rasogolla preparation scroll sequence"
         />
 
-        {/* Minimal Floating Scroll Indicator (Optically & mathematically centered) */}
+        {/* Minimal Floating Scroll Indicator (Direct DOM update for zero React render overhead) */}
         <div
+          ref={indicatorRef}
           style={{
             position: 'absolute',
             bottom: 'max(clamp(2.25rem, 7vh, 3.75rem), calc(1.75rem + env(safe-area-inset-bottom, 0px)))',
             left: '50%',
-            transform: hasStartedScroll
-              ? 'translateX(-50%) translateY(10px)'
-              : 'translateX(-50%) translateY(0)',
+            transform: 'translateX(-50%) translateY(0)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -366,12 +392,12 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
             gap: '0.4rem',
             zIndex: 20,
             pointerEvents: 'none',
-            opacity: hasStartedScroll ? 0 : 1,
+            opacity: 1,
             transition: 'opacity 0.35s ease, transform 0.35s ease',
             whiteSpace: 'nowrap',
             textAlign: 'center',
           }}
-          aria-hidden={hasStartedScroll}
+          aria-hidden="false"
         >
           <span
             style={{
@@ -379,7 +405,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
               fontSize: 'clamp(0.75rem, 2vw, 0.85rem)',
               fontWeight: 600,
               letterSpacing: '0.18em',
-              paddingLeft: '0.18em', // Cancels optical offset from trailing letter-spacing
+              paddingLeft: '0.18em',
               textTransform: 'uppercase',
               textShadow: '0 2px 12px rgba(0, 0, 0, 0.9), 0 1px 4px rgba(0, 0, 0, 0.95)',
             }}

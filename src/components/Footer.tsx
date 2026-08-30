@@ -386,20 +386,41 @@ export default function Footer() {
             paddingTop: '1.75rem',
             borderTop: '1px solid var(--color-border-subtle)',
             display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1rem',
+            flexDirection: 'column',
+            gap: '0.75rem',
             fontSize: '0.8rem',
             color: 'var(--color-muted)',
           }}
         >
-          <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
-            &copy; {currentYear} {BUSINESS.name.english} ({BUSINESS.name.bengali}). All rights reserved.
-          </p>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+            }}
+          >
+            <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
+              &copy; {currentYear} {BUSINESS.name.english} ({BUSINESS.name.bengali}). All rights reserved.
+            </p>
 
-          <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
-            Serving authentic sweetness since {BUSINESS.established} &bull; Kalna, West Bengal
+            <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
+              Serving authentic sweetness since {BUSINESS.established} &bull; Kalna, West Bengal
+            </p>
+          </div>
+
+          <p
+            style={{
+              fontSize: '0.72rem',
+              color: 'var(--color-muted)',
+              opacity: 0.75,
+              lineHeight: 1.45,
+              textAlign: 'center',
+              marginTop: '0.25rem',
+            }}
+          >
+            * Disclaimer: Images used on this website are for reference/illustrative purposes and may not depict the exact appearance of the actual handcrafted products.
           </p>
         </div>
       </div>

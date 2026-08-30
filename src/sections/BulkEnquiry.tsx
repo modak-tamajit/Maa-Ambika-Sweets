@@ -5,7 +5,7 @@ import { BUSINESS } from '@/config/business';
 import { buildWhatsAppUrl, getTelephoneUrl } from '@/utils/whatsapp';
 import { trackEvent } from '@/utils/analytics';
 
-export default function Enquiry() {
+export default function BulkEnquiry() {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -67,6 +67,7 @@ export default function Enquiry() {
 
   const handleEmailSubmit = () => {
     if (!formData.name.trim() || !formData.phone.trim() || !formData.query.trim()) {
+      // Trigger native validation or focus
       if (textareaRef.current && !formData.query.trim()) {
         textareaRef.current.focus();
       }

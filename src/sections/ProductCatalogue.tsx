@@ -1,9 +1,31 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useRef } from 'react';
 import { products } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
+import ProductCatalogueOverlay from '@/components/ProductCatalogueOverlay';
+import { trackEvent } from '@/utils/analytics';
 
 export default function ProductCatalogue() {
+  const [isOverlayOpen, setIsOverlayOpen] = useState(false);
+  const viewAllBtnRef = useRef<HTMLButtonElement>(null);
+
   const hasProducts = products.length > 0;
+  // Slice up to 6 products for the homepage showcase
+  const featuredProducts = products.slice(0, 6);
+
+  const handleOpenOverlay = () => {
+    setIsOverlayOpen(true);
+    trackEvent('view_all_products');
+  };
+
+  const handleCloseOverlay = () => {
+    setIsOverlayOpen(false);
+    // Return focus to View All Products button for accessibility
+    setTimeout(() => {
+      viewAllBtnRef.current?.focus();
+    }, 50);
+  };
 
   return (
     <section
@@ -25,16 +47,63 @@ export default function ProductCatalogue() {
         </div>
 
         {hasProducts ? (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))',
-              gap: 'clamp(1.25rem, 2.5vw, 2rem)',
-            }}
-          >
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+          <div>
+            {/* Curated Grid: Displays 6 items on desktop (≥768px) and 4 items on mobile (<768px) */}
+            <div className="homepage-products-grid">
+              {featuredProducts.map((product, index) => (
+                <div
+                  key={product.id}
+                  className={`homepage-product-item ${
+                    index >= 4 ? 'product-desktop-only' : ''
+                  }`}
+                >
+                  <ProductCard product={product} />
+                </div>
+              ))}
+            </div>
+
+            {/* View All Products CTA Button */}
+            <div className="catalogue-cta-wrapper">
+              <button
+                ref={viewAllBtnRef}
+                type="button"
+                onClick={handleOpenOverlay}
+                className="btn-view-all-products"
+                aria-haspopup="dialog"
+                aria-expanded={isOverlayOpen}
+                aria-label="View all sweets in full catalogue"
+              >
+                <span>View All Products</span>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Reference Image Disclaimer Note */}
+            <p
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--color-muted)',
+                textAlign: 'center',
+                marginTop: '1.25rem',
+                opacity: 0.85,
+                lineHeight: 1.4,
+              }}
+            >
+              * Images are for illustrative reference only and may differ from the fresh handcrafted sweets.
+            </p>
           </div>
         ) : (
           <div
@@ -111,6 +180,12 @@ export default function ProductCatalogue() {
           </div>
         )}
       </div>
+
+      {/* Interactive Full-screen Catalogue Overlay */}
+      <ProductCatalogueOverlay
+        isOpen={isOverlayOpen}
+        onClose={handleCloseOverlay}
+      />
     </section>
   );
 }

@@ -6,8 +6,8 @@ export default function HeroHeadline() {
     <section
       style={{
         backgroundColor: 'var(--color-cream)',
-        paddingTop: 'clamp(5rem, 9vw, 8rem)',
-        paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        paddingTop: 'clamp(4.5rem, 8vw, 7.5rem)',
+        paddingBottom: 'clamp(3.5rem, 6vw, 5.5rem)',
         borderBottom: '1px solid var(--color-border-subtle)',
       }}
     >
@@ -15,23 +15,17 @@ export default function HeroHeadline() {
         className="container"
         style={{
           textAlign: 'center',
-          maxWidth: '840px',
+          maxWidth: '1150px',
           margin: '0 auto',
         }}
       >
-        {/* Bengali Tagline */}
+        {/* Bengali Calligraphy Tagline using KalindimjBold TTF font */}
         <h1
-          className="bengali-text"
-          style={{
-            fontSize: 'clamp(2.2rem, 5vw, 4rem)',
-            fontWeight: 600,
-            color: 'var(--color-maroon)',
-            marginBottom: '1rem',
-            lineHeight: 1.2,
-            letterSpacing: '0.01em',
-          }}
+          className="bengali-tagline"
+          aria-label={BUSINESS.tagline.bengali}
+          title={BUSINESS.tagline.bengali}
         >
-          {BUSINESS.tagline.bengali}
+          mv‡a¨i g‡a¨ ¯^v` e`j
         </h1>
 
         {/* English Headline */}

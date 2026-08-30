@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Cormorant_Garamond, Inter, Noto_Sans_Bengali } from 'next/font/google';
+import { Cormorant_Garamond, Inter, Noto_Sans_Bengali, Noto_Serif_Bengali } from 'next/font/google';
 import './globals.css';
 import { BUSINESS } from '@/config/business';
 
@@ -22,6 +22,13 @@ const notoBengali = Noto_Sans_Bengali({
   subsets: ['bengali'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-bengali',
+  display: 'swap',
+});
+
+const notoSerifBengali = Noto_Serif_Bengali({
+  subsets: ['bengali'],
+  weight: ['500', '600', '700'],
+  variable: '--font-noto-serif-bengali',
   display: 'swap',
 });
 
@@ -118,7 +125,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cormorant.variable} ${inter.variable} ${notoBengali.variable}`}
+      className={`${cormorant.variable} ${inter.variable} ${notoBengali.variable} ${notoSerifBengali.variable}`}
     >
       <head>
         <script

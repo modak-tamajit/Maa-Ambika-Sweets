@@ -1,9 +1,13 @@
 import React from 'react';
 import Image from 'next/image';
 import { BUSINESS } from '@/config/business';
+import { buildWhatsAppMessage, buildWhatsAppUrl } from '@/utils/whatsapp';
+import { trackEvent } from '@/utils/analytics';
 
 export default function FinalCTA() {
-  const cleanNumber = BUSINESS.whatsapp.replace(/[^0-9]/g, '');
+  const whatsappUrl = buildWhatsAppUrl(
+    buildWhatsAppMessage()
+  );
 
   return (
     <section
@@ -89,9 +93,10 @@ export default function FinalCTA() {
             }}
           >
             <a
-              href={`https://wa.me/${cleanNumber}?text=${encodeURIComponent(`Hello ${BUSINESS.name.english}, I would like to enquire about sweets.`)}`}
+              href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackEvent('whatsapp_clicked', { source: 'final_cta' })}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',

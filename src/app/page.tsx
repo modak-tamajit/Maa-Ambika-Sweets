@@ -1,28 +1,62 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Preloader from '@/sections/Preloader';
 import Navbar from '@/components/Navbar';
 import HeroSequence from '@/sections/HeroSequence';
 import HeroHeadline from '@/sections/HeroHeadline';
 import BrandIntro from '@/sections/BrandIntro';
-import ProductCatalogue from '@/sections/ProductCatalogue';
 import OurStory from '@/sections/OurStory';
-import WhyMaaAmbika from '@/sections/WhyMaaAmbika';
+import ProductCatalogue from '@/sections/ProductCatalogue';
+import OccasionDiscovery from '@/sections/OccasionDiscovery';
+import GIHeritage from '@/sections/GIHeritage';
 import Celebrations from '@/sections/Celebrations';
+import BulkEnquiry from '@/sections/BulkEnquiry';
+import WhyMaaAmbika from '@/sections/WhyMaaAmbika';
 import GoogleReviews from '@/sections/GoogleReviews';
+import FAQ from '@/sections/FAQ';
 import Location from '@/sections/Location';
-import Enquiry from '@/sections/Enquiry';
 import Instagram from '@/sections/Instagram';
 import FinalCTA from '@/sections/FinalCTA';
 import Footer from '@/components/Footer';
+import { faqs } from '@/data/faq';
 
 export default function HomePage() {
   const [initialFramesReady, setInitialFramesReady] = useState(false);
   const [preloaderDone, setPreloaderDone] = useState(false);
 
+  // Ensure page always starts at the top upon refresh / reload
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual';
+      }
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
+  // Synchronized FAQPage JSON-LD schema
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.questionEnglish,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.answerEnglish,
+      },
+    })),
+  };
+
   return (
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--color-cream)' }}>
+      {/* FAQ Schema Markup */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
       {/* Brand Preloader */}
       {!preloaderDone && (
         <Preloader
@@ -34,45 +68,54 @@ export default function HomePage() {
       {/* Global Fixed Header */}
       <Navbar />
 
-      {/* Hero Section: 50-frame Scroll-driven Canvas Sequence */}
+      {/* 1. Hero Section: 250-frame Scroll-driven Canvas Sequence */}
       <HeroSequence
         onInitialFramesReady={() => setInitialFramesReady(true)}
       />
 
-      {/* Section 1: Hero Headline (সাধ্যের মধ্যে স্বাদ বদল) */}
+      {/* 2. Hero Headline (সাধ্যের মধ্যে স্বাদ বদল) */}
       <HeroHeadline />
 
-      {/* Section 2: Brand Introduction */}
+      {/* 3. Brand Introduction (A Tradition of Pure Taste) */}
       <BrandIntro />
 
-      {/* Section 3: Our Story (Since 2000 in Kalna) */}
+      {/* 4. Our Story (Rooted in Kalna Since 2000) */}
       <OurStory />
 
-      {/* Section 4: Product Catalogue (data-driven) */}
+      {/* 5. Product Catalogue (Core Sweets Showcase) */}
       <ProductCatalogue />
 
-      {/* Section 5: Why Maa Ambika (Craftsmanship & Purity) */}
-      <WhyMaaAmbika />
+      {/* 6. Occasion-Based Sweet Discovery */}
+      <OccasionDiscovery />
 
-      {/* Section 6: Celebrations & Bulk Orders */}
+      {/* 7. GI Heritage (Banglar Rasogolla Legacy) */}
+      <GIHeritage />
+
+      {/* 8. Celebrations (Weddings, Pujas & Milestones Gallery) */}
       <Celebrations />
 
-      {/* Section 7: Google Reviews */}
+      {/* 9. Bulk Order & Celebration Enquiry Helper */}
+      <BulkEnquiry />
+
+      {/* 10. Why Maa Ambika (Craftsmanship & Purity Standards) */}
+      <WhyMaaAmbika />
+
+      {/* 11. Google Reviews */}
       <GoogleReviews />
 
-      {/* Section 8: Location & Interactive Map */}
+      {/* 12. Frequently Asked Questions Accordion */}
+      <FAQ />
+
+      {/* 13. Location & Directions */}
       <Location />
 
-      {/* Section 9: Direct WhatsApp Enquiry */}
-      <Enquiry />
-
-      {/* Section 10: Instagram Showcase */}
+      {/* 14. Instagram Showcase */}
       <Instagram />
 
-      {/* Section 11: Final Call to Action */}
+      {/* 15. Final Call to Action */}
       <FinalCTA />
 
-      {/* Footer with Registered & Licensed Compliance details */}
+      {/* 16. Footer with Registered Compliance */}
       <Footer />
     </main>
   );
