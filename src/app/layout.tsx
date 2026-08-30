@@ -50,6 +50,9 @@ export const metadata: Metadata = {
     ],
   },
   manifest: '/brand/favicon/site.webmanifest',
+  verification: {
+    google: 'nqPa8PHljVi-i-sfRz0MqVm5XO5LaxZ12ydQN4lJ-aA',
+  },
   openGraph: {
     title: BUSINESS.seo.title,
     description: BUSINESS.seo.description,
@@ -57,10 +60,10 @@ export const metadata: Metadata = {
     siteName: `${BUSINESS.name.english} (${BUSINESS.name.bengali})`,
     images: [
       {
-        url: '/brand/logo-reference.png',
-        width: 1024,
-        height: 1024,
-        alt: `${BUSINESS.name.english} Logo`,
+        url: '/brand/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: `${BUSINESS.name.english} - Authentic Bengali Sweets in Kalna`,
       },
     ],
     locale: 'en_IN',
@@ -70,7 +73,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: BUSINESS.seo.title,
     description: BUSINESS.seo.description,
-    images: ['/brand/logo-reference.png'],
+    images: ['/brand/og-image.jpg'],
   },
 };
 
@@ -79,14 +82,20 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // LocalBusiness structured data
+  // Valid Schema.org LocalBusiness (Bakery / Confectionery) structured data
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'SweetShop',
+    '@type': 'Bakery',
     name: BUSINESS.name.english,
     alternateName: BUSINESS.name.bengali,
-    image: `${BUSINESS.seo.canonical}/brand/logo-reference.png`,
+    image: `${BUSINESS.seo.canonical}/brand/og-image.jpg`,
+    logo: `${BUSINESS.seo.canonical}/brand/logo.png`,
     description: BUSINESS.seo.description,
+    url: BUSINESS.seo.canonical,
+    telephone: BUSINESS.phone,
+    priceRange: '₹',
+    servesCuisine: 'Bengali Sweets',
+    hasMap: BUSINESS.googleMaps.listingUrl,
     address: {
       '@type': 'PostalAddress',
       streetAddress: BUSINESS.address.street,
@@ -100,9 +109,6 @@ export default function RootLayout({
       latitude: BUSINESS.coordinates.lat,
       longitude: BUSINESS.coordinates.lng,
     },
-    url: BUSINESS.seo.canonical,
-    telephone: BUSINESS.phone,
-    priceRange: '₹',
     openingHoursSpecification: [
       {
         '@type': 'OpeningHoursSpecification',
@@ -128,6 +134,7 @@ export default function RootLayout({
       className={`${cormorant.variable} ${inter.variable} ${notoBengali.variable} ${notoSerifBengali.variable}`}
     >
       <head>
+        <meta name="google-site-verification" content="nqPa8PHljVi-i-sfRz0MqVm5XO5LaxZ12ydQN4lJ-aA" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

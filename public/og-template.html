@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>OG Image Generator</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Inter:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 1200px;
+      height: 630px;
+      overflow: hidden;
+      background: linear-gradient(135deg, #380C08 0%, #58150F 55%, #6B1C14 100%);
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      position: relative;
+    }
+
+    .border-frame {
+      position: absolute;
+      inset: 20px;
+      border: 1.5px solid rgba(214, 166, 100, 0.4);
+      border-radius: 12px;
+      pointer-events: none;
+    }
+
+    .border-inner {
+      position: absolute;
+      inset: 26px;
+      border: 1px solid rgba(214, 166, 100, 0.2);
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    .container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 60px 70px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .brand-col {
+      flex: 1.15;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-right: 40px;
+    }
+
+    .logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .logo-img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #FAF4E5;
+      padding: 4px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      border: 2px solid #D6A664;
+      object-fit: contain;
+    }
+
+    .est-tag {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: #D6A664;
+      font-weight: 600;
+    }
+
+    .brand-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 58px;
+      font-weight: 700;
+      color: #FAF4E5;
+      line-height: 1.08;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .bengali-title {
+      font-family: 'Noto Serif Bengali', serif;
+      font-size: 32px;
+      color: #D6A664;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
+    .descriptor {
+      font-size: 20px;
+      color: rgba(250, 244, 229, 0.9);
+      line-height: 1.4;
+      font-weight: 400;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .descriptor .dot {
+      color: #D6A664;
+      font-size: 22px;
+    }
+
+    .pills {
+      display: flex;
+      gap: 12px;
+    }
+
+    .pill {
+      background: rgba(250, 244, 229, 0.12);
+      border: 1px solid rgba(214, 166, 100, 0.35);
+      color: #FAF4E5;
+      padding: 8px 18px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .visual-col {
+      flex: 0.85;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      justify-content: center;
+      position: relative;
+    }
+
+    .photo-card-main {
+      width: 100%;
+      height: 270px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid rgba(214, 166, 100, 0.4);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+      position: relative;
+      background: #2A0E10;
+    }
+
+    .photo-card-main img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-row {
+      display: flex;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .photo-card-sub {
+      flex: 1;
+      height: 170px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1.5px solid rgba(214, 166, 100, 0.35);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+      position: relative;
+      background: #2A0E10;
+    }
+
+    .photo-card-sub img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+  <div class="border-frame"></div>
+  <div class="border-inner"></div>
+
+  <div class="container">
+    <div class="brand-col">
+      <div class="logo-badge">
+        <img class="logo-img" src="/brand/logo.png" alt="Maa Ambika Sweets Logo" />
+        <span class="est-tag">Serving Since 2000 &bull; Kalna</span>
+      </div>
+      <h1 class="brand-title">Maa Ambika Sweets</h1>
+      <div class="bengali-title">মা অম্বিকা সুইটস</div>
+      <div class="descriptor">
+        <span>Authentic Bengali Sweets</span>
+        <span class="dot">&bull;</span>
+        <span>Kalna, West Bengal</span>
+      </div>
+      <div class="pills">
+        <div class="pill">Banglar Rasogolla</div>
+        <div class="pill">Makha Sandesh</div>
+        <div class="pill">Nolen Gur Sweets</div>
+      </div>
+    </div>
+
+    <div class="visual-col">
+      <div class="photo-card-main">
+        <img src="/catalogue/Rossogolla.png" alt="Traditional Bengali Rasogolla" />
+      </div>
+      <div class="photo-row">
+        <div class="photo-card-sub">
+          <img src="/catalogue/Makha_Sondesh.png" alt="Makha Sandesh" />
+        </div>
+        <div class="photo-card-sub">
+          <img src="/catalogue/Nolen_Gur_Rasogolla.png" alt="Nolen Gur Rasogolla" />
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

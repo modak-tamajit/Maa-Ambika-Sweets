@@ -5,6 +5,7 @@ export interface Product {
   descriptionEnglish: string;
   descriptionBengali: string;
   image: string;
+  altText: string;
   category: string;
   occasionTags?: string[];
   season?: 'all-year' | 'winter' | 'seasonal';
@@ -20,6 +21,7 @@ export const products: Product[] = [
     descriptionBengali:
       'হালকা চিনির রসে ভেজানো নরম ও তুলতুলে ছানার রসগোল্লা, বাংলার চিরন্তন স্বাদের এক মিষ্টি ঐতিহ্য।',
     image: 'Rossogolla.png',
+    altText: 'Spongy white Bengali Rasogollas soaked in light sugar syrup and served in a traditional bowl',
     category: '',
     occasionTags: ['wedding', 'annaprashan', 'durga-puja', 'birthday', 'festivals'],
     season: 'all-year',
@@ -33,6 +35,7 @@ export const products: Product[] = [
     descriptionBengali:
       'তাজা ছানা ও চিনি আলতো করে মিশিয়ে তৈরি নরম, ঝুরঝুরে ও মিষ্টি স্বাদের এক চিরন্তন বাঙালি ঐতিহ্য।',
     image: 'Makha_Sondesh.png',
+    altText: 'Traditional soft and crumbly Makha Sandesh sweet garnished with pistachios in an earthen bowl',
     category: '',
     occasionTags: ['wedding', 'annaprashan', 'durga-puja', 'birthday', 'festivals'],
     season: 'all-year',
@@ -46,6 +49,7 @@ export const products: Product[] = [
     descriptionBengali:
       'সুগন্ধি নলেন গুড়ের রসে ভেজানো তুলতুলে ও নরম ছানার রসগোল্লা।',
     image: 'Nolen_Gur_Rasogolla.png',
+    altText: 'Spongy Bengali Rasogollas soaked in warm date palm jaggery (Nolen Gur) syrup inside a clay handi',
     category: 'Winters Only',
     occasionTags: ['wedding', 'festivals', 'birthday'],
     season: 'winter',
@@ -59,6 +63,7 @@ export const products: Product[] = [
     descriptionBengali:
       'তাজা ছানা দিয়ে তৈরি একটি ঐতিহ্যবাহী বাঙালি মিষ্টি, যা নলেন গুড়ের স্বাদে ভরা।',
     image: 'Nolen_Gur_Makha_Sondesh.png',
+    altText: 'Handcrafted Nolen Gur Sandesh sweet confection made with date palm jaggery and fresh chhana',
     category: 'Winters Only',
     occasionTags: ['wedding', 'festivals', 'birthday'],
     season: 'winter',
