@@ -26,6 +26,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const framesCache = useRef<Map<number, CacheEntry>>(new Map());
   const cachedKeysSorted = useRef<number[]>([]);
   const inFlight = useRef<Map<number, AbortController>>(new Map());
+  const pumpQueueRef = useRef<() => void>(() => {});
   const activeCount = useRef(0);
 
   const scrollableDistanceRef = useRef(0);
@@ -109,6 +110,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
 
     const nearest = framesCache.current.has(frameNum) ? frameNum : nearestCachedFrame(frameNum);
     if (nearest === null) return;
+    if (nearest === lastDrawnFrameRef.current) return;
     const img = framesCache.current.get(nearest);
     if (!img) return;
 
@@ -137,11 +139,11 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
         // Always redraw on arrival — if this frame is now the nearest to target, show it immediately.
         drawFrame(targetFrameRef.current);
       }
-      pumpQueue();
+      pumpQueueRef.current();
     };
 
     if (supportsImageBitmap) {
-      fetch(`/hero/${frameNumber}.jpg`, { signal: controller.signal })
+      fetch(`/hero/${frameNumber}.jpg`, { signal: controller.signal, cache: 'force-cache' })
         .then((res) => {
           if (!res.ok) throw new Error(`Unable to load hero frame ${frameNumber}`);
           return res.blob();
@@ -173,7 +175,10 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       }
     });
 
-    const wanted: number[] = [];
+    // The visible frame always comes first. Previously we only requested its
+    // neighbours, which let a production connection fall behind the scroll
+    // position and left the opening frame on-screen until the hero ended.
+    const wanted: number[] = [target];
     const ahead = isDown ? 1 : -1;
     for (let i = 1; i <= lookAhead; i++) {
       const f = target + ahead * i;
@@ -192,6 +197,10 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
 
     pruneCache(target);
   }, [fetchFrame, pruneCache]);
+
+  useEffect(() => {
+    pumpQueueRef.current = pumpQueue;
+  }, [pumpQueue]);
 
   // Quietly widens the cached buffer while the user is idle (paused, not scrolling).
   // This is what prevents "skipping" the moment scrolling resumes after a pause.
@@ -212,7 +221,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
           }
         }
       }
-      idleFill(); // keep extending outward while idle
     }, 200);
   }, [fetchFrame]);
 
@@ -246,6 +254,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
       canvas.width = pixelWidth;
       canvas.height = pixelHeight;
+      lastDrawnFrameRef.current = -1;
       const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
       ctxRef.current = ctx;
       if (ctx) { ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'medium'; }
@@ -310,7 +319,8 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
 
         const dist = scrollableDistanceRef.current;
         if (dist <= 0) return;
-        const progress = Math.max(0, Math.min(1, latestScrollY / dist));
+        const heroStart = containerRef.current?.offsetTop ?? 0;
+        const progress = Math.max(0, Math.min(1, (latestScrollY - heroStart) / dist));
 
         const shouldShowIndicator = progress <= 0.005;
         if (shouldShowIndicator !== isIndicatorVisibleRef.current && indicatorRef.current) {
