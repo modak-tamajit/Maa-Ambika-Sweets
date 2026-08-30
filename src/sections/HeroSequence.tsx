@@ -9,6 +9,7 @@ const TOTAL_FRAMES = 250;
 const MOBILE_CACHE_LIMIT = 16;
 const DESKTOP_CACHE_LIMIT = 36;
 const MAX_CONCURRENT = 4;
+const MOBILE_PLAYBACK_FPS = 24;
 
 interface HeroSequenceProps {
   onInitialFramesReady?: () => void;
@@ -43,6 +44,8 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const prefersReducedMotionRef = useRef(false);
   const coverDimsRef = useRef({ renderWidth: 0, renderHeight: 0, offsetX: 0, offsetY: 0 });
   const scrollRafIdRef = useRef<number | null>(null);
+  const mobilePlaybackRafIdRef = useRef<number | null>(null);
+  const isMobileAutoPlayingRef = useRef(false);
   const idleFillTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const insertSortedKey = (n: number) => {
@@ -224,6 +227,53 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     }, 200);
   }, [fetchFrame]);
 
+  // Mobile scroll input is often delivered in large, uneven jumps. Once the
+  // visitor nudges the hero, play the sequence at a steady pace and keep the
+  // page position in sync. Desktop retains direct scroll scrubbing.
+  const startMobilePlayback = useCallback((direction: number) => {
+    if (!isMobileRef.current || isMobileAutoPlayingRef.current) return;
+
+    isMobileAutoPlayingRef.current = true;
+    let lastTime = 0;
+    let frameRemainder = 0;
+
+    const tick = (now: number) => {
+      if (lastTime === 0) lastTime = now;
+      const elapsed = Math.min(100, now - lastTime);
+      lastTime = now;
+      frameRemainder += (elapsed * MOBILE_PLAYBACK_FPS) / 1000;
+      const wholeFrames = Math.floor(frameRemainder);
+      frameRemainder -= wholeFrames;
+
+      if (wholeFrames > 0) {
+        const nextFrame = Math.max(
+          1,
+          Math.min(TOTAL_FRAMES, targetFrameRef.current + direction * wholeFrames),
+        );
+        targetFrameRef.current = nextFrame;
+        drawFrame(nextFrame);
+        pumpQueue();
+
+        const heroStart = containerRef.current?.offsetTop ?? 0;
+        const progress = (nextFrame - 1) / (TOTAL_FRAMES - 1);
+        window.scrollTo({
+          top: heroStart + progress * scrollableDistanceRef.current,
+          behavior: 'instant' as ScrollBehavior,
+        });
+
+        if (nextFrame === 1 || nextFrame === TOTAL_FRAMES) {
+          isMobileAutoPlayingRef.current = false;
+          mobilePlaybackRafIdRef.current = null;
+          return;
+        }
+      }
+
+      mobilePlaybackRafIdRef.current = requestAnimationFrame(tick);
+    };
+
+    mobilePlaybackRafIdRef.current = requestAnimationFrame(tick);
+  }, [drawFrame, pumpQueue]);
+
   const updateCoverDimensions = useCallback((width: number, height: number) => {
     if (width === 0 || height === 0) return;
     const imgAspect = 1280 / 720;
@@ -296,6 +346,10 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   useEffect(() => {
     const handleScroll = () => {
       if (prefersReducedMotionRef.current) return;
+      if (isMobileRef.current && isMobileAutoPlayingRef.current) {
+        lastScrollYRef.current = window.scrollY;
+        return;
+      }
       const now = performance.now();
       const currentScrollY = window.scrollY;
       const timeDelta = Math.max(1, now - lastScrollTimeRef.current);
@@ -335,6 +389,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
         targetFrameRef.current = exactFrame;
         drawFrame(exactFrame);
         pumpQueue();
+        if (isMobileRef.current) startMobilePlayback(scrollDirectionRef.current);
       });
     };
 
@@ -355,12 +410,13 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       window.removeEventListener('orientationchange', updateLayoutAndCanvas);
       resizeObserver?.disconnect();
       if (scrollRafIdRef.current !== null) cancelAnimationFrame(scrollRafIdRef.current);
+      if (mobilePlaybackRafIdRef.current !== null) cancelAnimationFrame(mobilePlaybackRafIdRef.current);
       if (scrollIdleTimeoutRef.current) clearTimeout(scrollIdleTimeoutRef.current);
       if (idleFillTimeoutRef.current) clearTimeout(idleFillTimeoutRef.current);
       inFlight.current.forEach((c) => c.abort());
       inFlight.current.clear();
     };
-  }, [drawFrame, pumpQueue, idleFill, updateLayoutAndCanvas]);
+  }, [drawFrame, pumpQueue, idleFill, startMobilePlayback, updateLayoutAndCanvas]);
 
   return (
     <section id="hero" ref={containerRef} style={{ position: 'relative', height: '380vh', backgroundColor: 'var(--color-cream)' }}>
