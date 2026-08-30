@@ -59,9 +59,9 @@ export const BUSINESS = {
   // SEO — Update canonical URL after deployment
   // ──────────────────────────────────────────────
   seo: {
-    title: 'Maa Ambika Sweets | Authentic Bengali Sweets in Kalna',
+    title: 'Maa Ambika Sweets | Bengali Sweets in Kalna, West Bengal',
     description:
-      'Maa Ambika Sweets — authentic Bengali sweets in Rameswarpur, Kalna, Purba Bardhaman, West Bengal. Quality sweets for everyday enjoyment and celebrations since 2000.',
+      'Maa Ambika Sweets in Kalna, West Bengal — traditional Bengali sweets including Rasogolla, Sandesh and other freshly prepared sweets. Visit us in Rameswarpur, Kalna.',
     canonical: 'https://maa-ambika-sweets.vercel.app',
   },
 } as const;

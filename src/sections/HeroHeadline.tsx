@@ -22,8 +22,8 @@ export default function HeroHeadline() {
         {/* Bengali Calligraphy Tagline using KalindimjBold TTF font */}
         <h1
           className="bengali-tagline"
-          aria-label={BUSINESS.tagline.bengali}
-          title={BUSINESS.tagline.bengali}
+          aria-label={`${BUSINESS.name.english} — Traditional Bengali Sweets in Kalna`}
+          title={`${BUSINESS.name.english} — ${BUSINESS.tagline.bengali}`}
         >
           mv‡a¨i g‡a¨ ¯^v` e`j
         </h1>

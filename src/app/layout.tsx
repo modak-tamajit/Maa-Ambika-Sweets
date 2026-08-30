@@ -96,6 +96,10 @@ export default function RootLayout({
     priceRange: '₹',
     servesCuisine: 'Bengali Sweets',
     hasMap: BUSINESS.googleMaps.listingUrl,
+    sameAs: [
+      BUSINESS.instagram,
+      BUSINESS.googleMaps.listingUrl,
+    ],
     address: {
       '@type': 'PostalAddress',
       streetAddress: BUSINESS.address.street,
