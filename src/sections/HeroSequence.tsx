@@ -3,9 +3,9 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 
 const TOTAL_FRAMES = 250;
-const MOBILE_CACHE_LIMIT = 25;
-const DESKTOP_CACHE_LIMIT = 50;
-const MAX_CONCURRENT = 5;
+const MOBILE_CACHE_LIMIT = 35;
+const DESKTOP_CACHE_LIMIT = 70;
+const MAX_CONCURRENT = 8;
 
 interface HeroSequenceProps {
   onInitialFramesReady?: () => void;
@@ -21,7 +21,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const indicatorRef = useRef<HTMLDivElement>(null);
 
   const framesCache = useRef<Map<number, CacheEntry>>(new Map());
-  const cachedKeysSorted = useRef<number[]>([]); // kept sorted for fast nearest-neighbor lookup
+  const cachedKeysSorted = useRef<number[]>([]);
   const inFlight = useRef<Map<number, AbortController>>(new Map());
   const activeCount = useRef(0);
 
@@ -34,12 +34,14 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const lastScrollTimeRef = useRef(0);
   const scrollVelocityRef = useRef(0);
   const isIndicatorVisibleRef = useRef(true);
+  const isUserScrollingRef = useRef(false);
+  const scrollIdleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const prefersReducedMotionRef = useRef(false);
   const coverDimsRef = useRef({ renderWidth: 0, renderHeight: 0, offsetX: 0, offsetY: 0 });
   const scrollRafIdRef = useRef<number | null>(null);
   const drawRafIdRef = useRef<number | null>(null);
+  const idleFillTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // --- Nearest-neighbor lookup, kept O(log n) via a sorted key array ---
   const insertSortedKey = (n: number) => {
     const arr = cachedKeysSorted.current;
     let lo = 0, hi = arr.length;
@@ -47,7 +49,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       const mid = (lo + hi) >>> 1;
       if (arr[mid] < n) lo = mid + 1; else hi = mid;
     }
-    arr.splice(lo, 0, n);
+    if (arr[lo] !== n) arr.splice(lo, 0, n);
   };
   const removeSortedKey = (n: number) => {
     const arr = cachedKeysSorted.current;
@@ -80,7 +82,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const pruneCache = useCallback((currentCenter: number) => {
     const limit = isMobileRef.current ? MOBILE_CACHE_LIMIT : DESKTOP_CACHE_LIMIT;
     const cache = framesCache.current;
-    if (cache.size <= limit + 8) return;
+    if (cache.size <= limit + 10) return;
 
     const keys = cachedKeysSorted.current.filter((f) => f !== 1);
     keys.sort((a, b) => Math.abs(b - currentCenter) - Math.abs(a - currentCenter));
@@ -103,8 +105,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     }
     if (!ctx) return;
 
-    // Always draw SOMETHING — exact frame if cached, otherwise nearest cached neighbor.
-    // Never wait. This is what makes the canvas track the user instead of the load queue.
     const nearest = framesCache.current.has(frameNum) ? frameNum : nearestCachedFrame(frameNum);
     if (nearest === null) return;
     const img = framesCache.current.get(nearest);
@@ -117,7 +117,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     lastDrawnFrameRef.current = nearest;
   }, []);
 
-  // --- Priority-driven fetch pipeline. Cancels stale in-flight requests as target moves. ---
   const fetchFrame = useCallback((frameNumber: number): void => {
     if (frameNumber < 1 || frameNumber > TOTAL_FRAMES) return;
     if (framesCache.current.has(frameNumber) || inFlight.current.has(frameNumber)) return;
@@ -133,9 +132,8 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       if (entry) {
         framesCache.current.set(frameNumber, entry);
         insertSortedKey(frameNumber);
-        if (Math.abs(targetFrameRef.current - frameNumber) < 3) {
-          drawFrame(targetFrameRef.current);
-        }
+        // Always redraw on arrival — if this frame is now the nearest to target, show it immediately.
+        drawFrame(targetFrameRef.current);
       }
       pumpQueue();
     };
@@ -155,17 +153,15 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     }
   }, [drawFrame]);
 
-  // Recomputes the desired frame window around target, prioritized nearest-first,
-  // cancels in-flight fetches that fell outside the relevant window.
   const pumpQueue = useCallback(() => {
     const target = targetFrameRef.current;
     const isDown = scrollDirectionRef.current >= 0;
     const isFast = scrollVelocityRef.current > 1.5;
-    const lookAhead = isMobileRef.current ? (isFast ? 10 : 7) : (isFast ? 14 : 10);
-    const lookBehind = isMobileRef.current ? 3 : 4;
-    const relevantRadius = lookAhead + 6;
+    // Widened windows — more headroom to fill ahead of the user, now that decode is off-thread.
+    const lookAhead = isMobileRef.current ? (isFast ? 16 : 12) : (isFast ? 22 : 16);
+    const lookBehind = isMobileRef.current ? 5 : 6;
+    const relevantRadius = lookAhead + 10;
 
-    // Cancel stale fetches (direction reversed, or too far from current target now)
     inFlight.current.forEach((controller, frame) => {
       if (Math.abs(frame - target) > relevantRadius) {
         controller.abort();
@@ -184,7 +180,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       const f = target - ahead * i;
       if (f >= 1 && f <= TOTAL_FRAMES && !framesCache.current.has(f)) wanted.push(f);
     }
-    // Nearest-to-target first
     wanted.sort((a, b) => Math.abs(a - target) - Math.abs(b - target));
 
     for (const f of wanted) {
@@ -194,6 +189,29 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
 
     pruneCache(target);
   }, [fetchFrame, pruneCache]);
+
+  // Quietly widens the cached buffer while the user is idle (paused, not scrolling).
+  // This is what prevents "skipping" the moment scrolling resumes after a pause.
+  const idleFill = useCallback(() => {
+    if (idleFillTimeoutRef.current) clearTimeout(idleFillTimeoutRef.current);
+    idleFillTimeoutRef.current = setTimeout(() => {
+      if (isUserScrollingRef.current) return;
+      const target = targetFrameRef.current;
+      const radius = isMobileRef.current ? 30 : 45;
+      let filled = 0;
+      for (let d = 1; d <= radius && filled < 3; d++) {
+        for (const f of [target + d, target - d]) {
+          if (f >= 1 && f <= TOTAL_FRAMES && !framesCache.current.has(f) && !inFlight.current.has(f)) {
+            if (activeCount.current < MAX_CONCURRENT) {
+              fetchFrame(f);
+              filled++;
+            }
+          }
+        }
+      }
+      idleFill(); // keep extending outward while idle
+    }, 200);
+  }, [fetchFrame]);
 
   const updateCoverDimensions = useCallback((width: number, height: number) => {
     if (width === 0 || height === 0) return;
@@ -233,7 +251,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     }
   }, [drawFrame, updateCoverDimensions]);
 
-  // Bootstrap
   useEffect(() => {
     let isMounted = true;
     prefersReducedMotionRef.current =
@@ -243,7 +260,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       isMobileRef.current = window.innerWidth < 768;
       fetchFrame(1);
 
-      // Poll briefly for frame 1 (bounded, not indefinite — avoids the old setInterval leak pattern)
       for (let i = 0; i < 40 && !framesCache.current.has(1); i++) {
         await new Promise((r) => setTimeout(r, 25));
       }
@@ -255,15 +271,16 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
 
       if (prefersReducedMotionRef.current) return;
       pumpQueue();
+      idleFill();
     };
 
     bootstrap();
-    return () => { isMounted = false; };
-  }, [fetchFrame, updateLayoutAndCanvas, drawFrame, pumpQueue, onInitialFramesReady]);
+    return () => {
+      isMounted = false;
+      if (idleFillTimeoutRef.current) clearTimeout(idleFillTimeoutRef.current);
+    };
+  }, [fetchFrame, updateLayoutAndCanvas, drawFrame, pumpQueue, idleFill, onInitialFramesReady]);
 
-  // Continuous draw loop — decoupled from scroll events entirely.
-  // Guarantees the canvas is always painting the best-available frame for
-  // the CURRENT target, even between scroll events or while frames stream in.
   useEffect(() => {
     const loop = () => {
       drawFrame(targetFrameRef.current);
@@ -283,6 +300,14 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       const timeDelta = Math.max(1, now - lastScrollTimeRef.current);
       scrollVelocityRef.current = Math.abs(currentScrollY - lastScrollYRef.current) / timeDelta;
       lastScrollTimeRef.current = now;
+
+      isUserScrollingRef.current = true;
+      if (scrollIdleTimeoutRef.current) clearTimeout(scrollIdleTimeoutRef.current);
+      scrollIdleTimeoutRef.current = setTimeout(() => {
+        isUserScrollingRef.current = false;
+        scrollVelocityRef.current = 0;
+        idleFill(); // start widening the buffer as soon as scrolling stops
+      }, 200);
 
       if (scrollRafIdRef.current !== null) return;
       scrollRafIdRef.current = requestAnimationFrame(() => {
@@ -306,8 +331,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
 
         const exactFrame = Math.max(1, Math.min(TOTAL_FRAMES, Math.floor(progress * (TOTAL_FRAMES - 1)) + 1));
         targetFrameRef.current = exactFrame;
-        // drawFrame is also called every rAF by the continuous loop above,
-        // but calling it here too means zero-latency response to the scroll event itself.
         drawFrame(exactFrame);
         pumpQueue();
       });
@@ -330,10 +353,12 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       window.removeEventListener('orientationchange', updateLayoutAndCanvas);
       resizeObserver?.disconnect();
       if (scrollRafIdRef.current !== null) cancelAnimationFrame(scrollRafIdRef.current);
+      if (scrollIdleTimeoutRef.current) clearTimeout(scrollIdleTimeoutRef.current);
+      if (idleFillTimeoutRef.current) clearTimeout(idleFillTimeoutRef.current);
       inFlight.current.forEach((c) => c.abort());
       inFlight.current.clear();
     };
-  }, [drawFrame, pumpQueue, updateLayoutAndCanvas]);
+  }, [drawFrame, pumpQueue, idleFill, updateLayoutAndCanvas]);
 
   return (
     <section id="hero" ref={containerRef} style={{ position: 'relative', height: '380vh', backgroundColor: 'var(--color-cream)' }}>
