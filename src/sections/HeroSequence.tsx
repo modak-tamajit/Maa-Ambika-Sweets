@@ -6,10 +6,9 @@ const TOTAL_FRAMES = 250;
 // JPEGs are small on the network, but each decoded 1280×720 bitmap occupies
 // roughly 3.5 MB. Keep the working set modest so production devices do not
 // hit memory pressure and start janking while scrolling.
-const MOBILE_CACHE_LIMIT = 16;
+const MOBILE_CACHE_LIMIT = 24;
 const DESKTOP_CACHE_LIMIT = 36;
 const MAX_CONCURRENT = 4;
-const MOBILE_PLAYBACK_FPS = 24;
 
 interface HeroSequenceProps {
   onInitialFramesReady?: () => void;
@@ -44,8 +43,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const prefersReducedMotionRef = useRef(false);
   const coverDimsRef = useRef({ renderWidth: 0, renderHeight: 0, offsetX: 0, offsetY: 0 });
   const scrollRafIdRef = useRef<number | null>(null);
-  const mobilePlaybackRafIdRef = useRef<number | null>(null);
-  const isMobileAutoPlayingRef = useRef(false);
   const idleFillTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const insertSortedKey = (n: number) => {
@@ -127,7 +124,8 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const fetchFrame = useCallback((frameNumber: number): void => {
     if (frameNumber < 1 || frameNumber > TOTAL_FRAMES) return;
     if (framesCache.current.has(frameNumber) || inFlight.current.has(frameNumber)) return;
-    if (activeCount.current >= MAX_CONCURRENT) return;
+    const concurrencyLimit = isMobileRef.current ? 5 : MAX_CONCURRENT;
+    if (activeCount.current >= concurrencyLimit) return;
 
     const controller = new AbortController();
     inFlight.current.set(frameNumber, controller);
@@ -168,8 +166,8 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     const isDown = scrollDirectionRef.current >= 0;
     const isFast = scrollVelocityRef.current > 1.5;
     // Widened windows — more headroom to fill ahead of the user, now that decode is off-thread.
-    const lookAhead = isMobileRef.current ? (isFast ? 16 : 12) : (isFast ? 22 : 16);
-    const lookBehind = isMobileRef.current ? 5 : 6;
+    const lookAhead = isMobileRef.current ? (isFast ? 24 : 18) : (isFast ? 22 : 16);
+    const lookBehind = isMobileRef.current ? 7 : 6;
     const relevantRadius = lookAhead + 10;
 
     inFlight.current.forEach((controller, frame) => {
@@ -194,7 +192,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     wanted.sort((a, b) => Math.abs(a - target) - Math.abs(b - target));
 
     for (const f of wanted) {
-      if (activeCount.current >= MAX_CONCURRENT) break;
+      if (activeCount.current >= (isMobileRef.current ? 5 : MAX_CONCURRENT)) break;
       fetchFrame(f);
     }
 
@@ -217,7 +215,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       for (let d = 1; d <= radius && filled < 3; d++) {
         for (const f of [target + d, target - d]) {
           if (f >= 1 && f <= TOTAL_FRAMES && !framesCache.current.has(f) && !inFlight.current.has(f)) {
-            if (activeCount.current < MAX_CONCURRENT) {
+            if (activeCount.current < (isMobileRef.current ? 5 : MAX_CONCURRENT)) {
               fetchFrame(f);
               filled++;
             }
@@ -226,53 +224,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       }
     }, 200);
   }, [fetchFrame]);
-
-  // Mobile scroll input is often delivered in large, uneven jumps. Once the
-  // visitor nudges the hero, play the sequence at a steady pace and keep the
-  // page position in sync. Desktop retains direct scroll scrubbing.
-  const startMobilePlayback = useCallback((direction: number) => {
-    if (!isMobileRef.current || isMobileAutoPlayingRef.current) return;
-
-    isMobileAutoPlayingRef.current = true;
-    let lastTime = 0;
-    let frameRemainder = 0;
-
-    const tick = (now: number) => {
-      if (lastTime === 0) lastTime = now;
-      const elapsed = Math.min(100, now - lastTime);
-      lastTime = now;
-      frameRemainder += (elapsed * MOBILE_PLAYBACK_FPS) / 1000;
-      const wholeFrames = Math.floor(frameRemainder);
-      frameRemainder -= wholeFrames;
-
-      if (wholeFrames > 0) {
-        const nextFrame = Math.max(
-          1,
-          Math.min(TOTAL_FRAMES, targetFrameRef.current + direction * wholeFrames),
-        );
-        targetFrameRef.current = nextFrame;
-        drawFrame(nextFrame);
-        pumpQueue();
-
-        const heroStart = containerRef.current?.offsetTop ?? 0;
-        const progress = (nextFrame - 1) / (TOTAL_FRAMES - 1);
-        window.scrollTo({
-          top: heroStart + progress * scrollableDistanceRef.current,
-          behavior: 'instant' as ScrollBehavior,
-        });
-
-        if (nextFrame === 1 || nextFrame === TOTAL_FRAMES) {
-          isMobileAutoPlayingRef.current = false;
-          mobilePlaybackRafIdRef.current = null;
-          return;
-        }
-      }
-
-      mobilePlaybackRafIdRef.current = requestAnimationFrame(tick);
-    };
-
-    mobilePlaybackRafIdRef.current = requestAnimationFrame(tick);
-  }, [drawFrame, pumpQueue]);
 
   const updateCoverDimensions = useCallback((width: number, height: number) => {
     if (width === 0 || height === 0) return;
@@ -346,10 +297,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   useEffect(() => {
     const handleScroll = () => {
       if (prefersReducedMotionRef.current) return;
-      if (isMobileRef.current && isMobileAutoPlayingRef.current) {
-        lastScrollYRef.current = window.scrollY;
-        return;
-      }
       const now = performance.now();
       const currentScrollY = window.scrollY;
       const timeDelta = Math.max(1, now - lastScrollTimeRef.current);
@@ -389,7 +336,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
         targetFrameRef.current = exactFrame;
         drawFrame(exactFrame);
         pumpQueue();
-        if (isMobileRef.current) startMobilePlayback(scrollDirectionRef.current);
       });
     };
 
@@ -410,13 +356,12 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       window.removeEventListener('orientationchange', updateLayoutAndCanvas);
       resizeObserver?.disconnect();
       if (scrollRafIdRef.current !== null) cancelAnimationFrame(scrollRafIdRef.current);
-      if (mobilePlaybackRafIdRef.current !== null) cancelAnimationFrame(mobilePlaybackRafIdRef.current);
       if (scrollIdleTimeoutRef.current) clearTimeout(scrollIdleTimeoutRef.current);
       if (idleFillTimeoutRef.current) clearTimeout(idleFillTimeoutRef.current);
       inFlight.current.forEach((c) => c.abort());
       inFlight.current.clear();
     };
-  }, [drawFrame, pumpQueue, idleFill, startMobilePlayback, updateLayoutAndCanvas]);
+  }, [drawFrame, pumpQueue, idleFill, updateLayoutAndCanvas]);
 
   return (
     <section id="hero" ref={containerRef} style={{ position: 'relative', height: '380vh', backgroundColor: 'var(--color-cream)' }}>
