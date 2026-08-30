@@ -3,9 +3,8 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 
 const TOTAL_FRAMES = 250;
-const MOBILE_CACHE_LIMIT = 40;
-const DESKTOP_CACHE_LIMIT = 80;
-const MAX_CONCURRENT_FETCHES = 4;
+const MOBILE_CACHE_LIMIT = 50;
+const DESKTOP_CACHE_LIMIT = 100;
 
 interface HeroSequenceProps {
   onInitialFramesReady?: () => void;
@@ -14,16 +13,13 @@ interface HeroSequenceProps {
 export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
 
   // Decoded image cache (Frame number -> HTMLImageElement with pre-decoded bitmap)
   const framesCache = useRef<Map<number, HTMLImageElement>>(new Map());
 
-  // In-flight loading requests & concurrency queue
+  // In-flight loading promises to prevent duplicate fetches
   const loadingFrames = useRef<Set<number>>(new Set());
-  const pendingQueue = useRef<Array<{ frameNumber: number; priority: boolean }>>([]);
-  const activeFetchesCount = useRef<number>(0);
 
   // Cached layout & rendering measurements to eliminate layout thrashing
   const scrollableDistanceRef = useRef<number>(0);
@@ -37,7 +33,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const targetFrameRef = useRef<number>(1);
   const isUserScrollingRef = useRef<boolean>(false);
   const scrollIdleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const prefersReducedMotionRef = useRef<boolean>(false);
 
   // Pre-calculated cover dimensions cache (updated only on resize)
   const coverDimsRef = useRef<{
@@ -60,10 +55,10 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     const limit = isMobileRef.current ? MOBILE_CACHE_LIMIT : DESKTOP_CACHE_LIMIT;
     const cache = framesCache.current;
 
-    // Hysteresis threshold to prevent sorting and pruning on every scroll pixel
-    if (cache.size <= limit + 10) return;
+    // Hysteresis threshold to prevent sorting and pruning on every frame
+    if (cache.size <= limit + 12) return;
 
-    // Frame 1 is always preserved for hero reset
+    // Preserve Frame 1 always for hero reset
     const keys = Array.from(cache.keys()).filter((f) => f !== 1);
     keys.sort((a, b) => Math.abs(b - currentCenter) - Math.abs(a - currentCenter));
 
@@ -73,156 +68,75 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     }
   }, []);
 
-  // Direct, zero-overhead canvas draw for exact frame or nearest loaded neighbor
-  const drawFrame = useCallback((frameNum: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    // Use cached context reference to eliminate getContext overhead
-    let ctx = ctxRef.current;
-    if (!ctx) {
-      ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
-      ctxRef.current = ctx;
-    }
-    if (!ctx) return;
-
-    // Retrieve requested frame or nearest available neighbor within +/- 30 frames
-    let imgToDraw: HTMLImageElement | undefined = framesCache.current.get(frameNum);
-    if (!imgToDraw) {
-      for (let distance = 1; distance <= 30; distance++) {
-        const prev = frameNum - distance;
-        const next = frameNum + distance;
-        if (prev >= 1 && framesCache.current.has(prev)) {
-          imgToDraw = framesCache.current.get(prev);
-          break;
-        }
-        if (next <= TOTAL_FRAMES && framesCache.current.has(next)) {
-          imgToDraw = framesCache.current.get(next);
-          break;
-        }
-      }
-    }
-
-    if (!imgToDraw || !imgToDraw.complete || imgToDraw.naturalWidth === 0) return;
-
-    const { renderWidth, renderHeight, offsetX, offsetY } = coverDimsRef.current;
-    if (renderWidth === 0 || renderHeight === 0) return;
-
-    ctx.drawImage(imgToDraw, offsetX, offsetY, renderWidth, renderHeight);
-    lastDrawnFrameRef.current = frameNum;
-  }, []);
-
-  // Process concurrency queue
-  const processQueue = useCallback(() => {
-    while (activeFetchesCount.current < MAX_CONCURRENT_FETCHES && pendingQueue.current.length > 0) {
-      const item = pendingQueue.current.shift();
-      if (!item) break;
-
-      const { frameNumber, priority } = item;
-      if (framesCache.current.has(frameNumber) || loadingFrames.current.has(frameNumber)) {
-        continue;
-      }
-
-      loadingFrames.current.add(frameNumber);
-      activeFetchesCount.current++;
-
-      const img = new Image();
-      img.decoding = 'async';
-      if (priority && 'fetchPriority' in img) {
-        (img as HTMLImageElement & { fetchPriority: string }).fetchPriority = 'high';
-      }
-
-      let isResolved = false;
-      const finalize = (success: boolean) => {
-        if (isResolved) return;
-        isResolved = true;
-        activeFetchesCount.current--;
-        loadingFrames.current.delete(frameNumber);
-
-        if (success && img.naturalWidth > 0) {
-          framesCache.current.set(frameNumber, img);
-
-          // Reactive draw: If the user is waiting on this exact target frame, paint immediately
-          if (targetFrameRef.current === frameNumber) {
-            drawFrame(frameNumber);
-          }
-        }
-
-        // Continue processing queue
-        processQueue();
-      };
-
-      img.onload = () => {
-        if (typeof img.decode === 'function') {
-          img.decode().then(() => finalize(true)).catch(() => finalize(true));
-        } else {
-          finalize(true);
-        }
-      };
-      img.onerror = () => {
-        // Fallback to legacy jpg if webp fails
-        const fallbackImg = new Image();
-        fallbackImg.onload = () => {
-          framesCache.current.set(frameNumber, fallbackImg);
-          finalize(true);
-        };
-        fallbackImg.onerror = () => finalize(false);
-        fallbackImg.src = `/hero/${frameNumber}.jpg`;
-      };
-
-      // Responsive asset path: mobile 854x480 vs desktop 1280x720
-      const basePath = isMobileRef.current ? '/hero/mobile' : '/hero/webp';
-      img.src = `${basePath}/${frameNumber}.webp`;
-    }
-  }, [drawFrame]);
-
-  // Safe deduplicated asynchronous frame loader with priority scheduling
+  // Safe deduplicated asynchronous frame loader
   const loadFrame = useCallback(
     (frameNumber: number, priority: boolean = false): Promise<HTMLImageElement | null> => {
       if (frameNumber < 1 || frameNumber > TOTAL_FRAMES) return Promise.resolve(null);
       if (framesCache.current.has(frameNumber)) {
         return Promise.resolve(framesCache.current.get(frameNumber)!);
       }
+      if (loadingFrames.current.has(frameNumber)) {
+        return Promise.resolve(null);
+      }
+
+      loadingFrames.current.add(frameNumber);
 
       return new Promise((resolve) => {
-        // High-priority immediate frame requests jump to front of queue
-        if (priority) {
-          pendingQueue.current.unshift({ frameNumber, priority: true });
-        } else {
-          pendingQueue.current.push({ frameNumber, priority: false });
+        const img = new Image();
+        img.decoding = 'async';
+
+        if (priority && 'fetchPriority' in img) {
+          (img as HTMLImageElement & { fetchPriority: string }).fetchPriority = 'high';
         }
 
-        processQueue();
+        let isResolved = false;
+        const finalize = (success: boolean) => {
+          if (isResolved) return;
+          isResolved = true;
+          loadingFrames.current.delete(frameNumber);
 
-        // Check completion on interval or resolution
-        const checkInterval = setInterval(() => {
-          if (framesCache.current.has(frameNumber)) {
-            clearInterval(checkInterval);
-            resolve(framesCache.current.get(frameNumber)!);
-          } else if (!loadingFrames.current.has(frameNumber) && !pendingQueue.current.some((q) => q.frameNumber === frameNumber)) {
-            clearInterval(checkInterval);
+          if (success && img.naturalWidth > 0) {
+            framesCache.current.set(frameNumber, img);
+            resolve(img);
+
+            // Reactive draw: If the user is waiting on this exact target frame, paint immediately
+            if (targetFrameRef.current === frameNumber && canvasRef.current) {
+              const canvas = canvasRef.current;
+              const ctx = canvas.getContext('2d', { alpha: false });
+              if (ctx && coverDimsRef.current.renderWidth > 0) {
+                const { renderWidth, renderHeight, offsetX, offsetY } = coverDimsRef.current;
+                ctx.drawImage(img, offsetX, offsetY, renderWidth, renderHeight);
+                lastDrawnFrameRef.current = frameNumber;
+              }
+            }
+          } else {
             resolve(null);
           }
-        }, 30);
+        };
+
+        img.onload = () => {
+          if (typeof img.decode === 'function') {
+            img.decode().then(() => finalize(true)).catch(() => finalize(true));
+          } else {
+            finalize(true);
+          }
+        };
+        img.onerror = () => finalize(false);
+        img.src = `/hero/${frameNumber}.jpg`;
       });
     },
-    [processQueue]
+    []
   );
 
   // Velocity-aware directional streaming preloader
   const preloadSurroundingFrames = useCallback(
     (centerFrame: number) => {
       const isDown = scrollDirectionRef.current >= 0;
-      const isFast = scrollVelocityRef.current > 1.8; // Fast scroll fling
+      const isFast = scrollVelocityRef.current > 1.5; // High velocity scroll fling
       
-      const lookAhead = isMobileRef.current ? (isFast ? 10 : 8) : (isFast ? 16 : 12);
+      const lookAhead = isMobileRef.current ? (isFast ? 12 : 8) : (isFast ? 18 : 14);
       const lookBehind = isMobileRef.current ? 3 : 5;
-      const stride = isFast ? 2 : 1;
-
-      // Clean up stale pending queue items far from current center
-      pendingQueue.current = pendingQueue.current.filter((item) => {
-        return Math.abs(item.frameNumber - centerFrame) <= (isMobileRef.current ? 20 : 35);
-      });
+      const stride = isFast ? 2 : 1; // Sample frames sparsely during fast flings to avoid network saturation
 
       if (isDown) {
         for (let i = 1; i <= lookAhead; i += stride) {
@@ -261,8 +175,8 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const updateCoverDimensions = useCallback((width: number, height: number) => {
     if (width === 0 || height === 0) return;
 
-    // Standard 16:9 aspect ratio
-    const imgAspect = 16 / 9;
+    // Standard 1280x720 16:9 hero aspect ratio
+    const imgAspect = 1280 / 720;
     const canvasAspect = width / height;
 
     let renderWidth: number;
@@ -290,6 +204,39 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     };
   }, []);
 
+  // Direct, zero-overhead canvas draw for exact frame or nearest loaded neighbor
+  const drawFrame = useCallback((frameNum: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return;
+
+    // Retrieve requested frame or nearest available neighbor within +/- 30 frames
+    let imgToDraw: HTMLImageElement | undefined = framesCache.current.get(frameNum);
+    if (!imgToDraw) {
+      for (let distance = 1; distance <= 30; distance++) {
+        const prev = frameNum - distance;
+        const next = frameNum + distance;
+        if (prev >= 1 && framesCache.current.has(prev)) {
+          imgToDraw = framesCache.current.get(prev);
+          break;
+        }
+        if (next <= TOTAL_FRAMES && framesCache.current.has(next)) {
+          imgToDraw = framesCache.current.get(next);
+          break;
+        }
+      }
+    }
+
+    if (!imgToDraw || !imgToDraw.complete || imgToDraw.naturalWidth === 0) return;
+
+    const { renderWidth, renderHeight, offsetX, offsetY } = coverDimsRef.current;
+    if (renderWidth === 0 || renderHeight === 0) return;
+
+    ctx.drawImage(imgToDraw, offsetX, offsetY, renderWidth, renderHeight);
+    lastDrawnFrameRef.current = frameNum;
+  }, []);
+
   // Optimized Canvas Resizing with GPU fill-rate capping
   const updateLayoutAndCanvas = useCallback(() => {
     const container = containerRef.current;
@@ -302,8 +249,8 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     const containerHeight = container.offsetHeight || window.innerHeight * 3.8;
     scrollableDistanceRef.current = Math.max(1, containerHeight - window.innerHeight);
 
-    // DPR Cap: 1.0x on mobile, 1.25x on desktop for optimal GPU fill rate and 60fps smoothness
-    const maxDpr = isMobileRef.current ? 1.0 : 1.25;
+    // DPR Cap: 1.0x on mobile, 1.5x on desktop for optimal GPU fill rate and 60fps smoothness
+    const maxDpr = isMobileRef.current ? 1.0 : 1.5;
     const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
 
     const clientWidth = window.innerWidth;
@@ -316,8 +263,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       canvas.width = pixelWidth;
       canvas.height = pixelHeight;
 
-      const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
-      ctxRef.current = ctx;
+      const ctx = canvas.getContext('2d', { alpha: false });
       if (ctx) {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'medium';
@@ -332,11 +278,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   useEffect(() => {
     let isMounted = true;
 
-    // Check reduced motion preference
-    if (typeof window !== 'undefined') {
-      prefersReducedMotionRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    }
-
     const bootstrap = async () => {
       // 1. Load Frame 1 immediately with high priority
       await loadFrame(1, true);
@@ -349,17 +290,14 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
         }
       }
 
-      // If user prefers reduced motion, stop sequence preloading
-      if (prefersReducedMotionRef.current) return;
-
-      // 2. Buffer immediate startup frames (2 to 10)
-      const startupBuffer = Array.from({ length: 9 }, (_, i) => i + 2);
+      // 2. Buffer startup frames (2 to 12)
+      const startupBuffer = Array.from({ length: 11 }, (_, i) => i + 2);
       await Promise.all(startupBuffer.map((f) => loadFrame(f, true)));
 
-      // 3. Low-priority idle background prefetcher (only when user is NOT actively scrolling)
-      let currentBackgroundFrame = 11;
+      // 3. Low-priority idle background prefetcher (only when user is NOT scrolling)
+      let currentBackgroundFrame = 13;
       const loadNextIdleChunk = () => {
-        if (!isMounted || currentBackgroundFrame > (isMobileRef.current ? 50 : 90)) return;
+        if (!isMounted || currentBackgroundFrame > (isMobileRef.current ? 65 : 110)) return;
 
         // If user is currently scrolling, yield immediately
         if (isUserScrollingRef.current) {
@@ -409,8 +347,6 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   // Direct 1:1 Scroll-Coupled Render Handler (Zero React state updates, native refresh rate)
   useEffect(() => {
     const handleScroll = () => {
-      if (prefersReducedMotionRef.current) return;
-
       const now = performance.now();
       const currentScrollY = window.scrollY;
       const timeDelta = Math.max(1, now - lastScrollTimeRef.current);
