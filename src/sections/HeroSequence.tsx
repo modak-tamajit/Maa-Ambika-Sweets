@@ -3,8 +3,8 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 
 const TOTAL_FRAMES = 250;
-const MOBILE_CACHE_LIMIT = 35;
-const DESKTOP_CACHE_LIMIT = 65;
+const MOBILE_CACHE_LIMIT = 50;
+const DESKTOP_CACHE_LIMIT = 100;
 
 interface HeroSequenceProps {
   onInitialFramesReady?: () => void;
@@ -14,10 +14,10 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
-  
-  // Decoded image cache (Frame number -> HTMLImageElement)
+
+  // Decoded image cache (Frame number -> HTMLImageElement with pre-decoded bitmap)
   const framesCache = useRef<Map<number, HTMLImageElement>>(new Map());
-  
+
   // In-flight loading promises to prevent duplicate fetches
   const loadingFrames = useRef<Set<number>>(new Set());
 
@@ -27,8 +27,12 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
   const lastDrawnFrameRef = useRef<number>(-1);
   const scrollDirectionRef = useRef<number>(1); // 1 = down, -1 = up
   const lastScrollYRef = useRef<number>(0);
+  const lastScrollTimeRef = useRef<number>(0);
+  const scrollVelocityRef = useRef<number>(0);
   const isIndicatorVisibleRef = useRef<boolean>(true);
   const targetFrameRef = useRef<number>(1);
+  const isUserScrollingRef = useRef<boolean>(false);
+  const scrollIdleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Pre-calculated cover dimensions cache (updated only on resize)
   const coverDimsRef = useRef<{
@@ -43,101 +47,129 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     offsetY: 0,
   });
 
-  // RAF scheduling flag for scroll-coalescing
+  // RAF scheduling flag for scroll coalescing
   const scrollRafIdRef = useRef<number | null>(null);
 
-  // Evict frames farthest from current scroll position to keep mobile memory lean & prevent GC pauses
+  // Evict frames farthest from current scroll position without destroying browser image cache
   const pruneCache = useCallback((currentCenter: number) => {
     const limit = isMobileRef.current ? MOBILE_CACHE_LIMIT : DESKTOP_CACHE_LIMIT;
     const cache = framesCache.current;
-    
-    if (cache.size <= limit) return;
 
-    // Sort cached frame numbers by distance from currentCenter (Frame 1 is always preserved)
+    // Hysteresis threshold to prevent sorting and pruning on every frame
+    if (cache.size <= limit + 12) return;
+
+    // Preserve Frame 1 always for hero reset
     const keys = Array.from(cache.keys()).filter((f) => f !== 1);
     keys.sort((a, b) => Math.abs(b - currentCenter) - Math.abs(a - currentCenter));
 
-    // Release and evict farthest frames until within memory limit
     const toEvictCount = cache.size - limit;
     for (let i = 0; i < toEvictCount && i < keys.length; i++) {
-      const frameToEvict = keys[i];
-      const img = cache.get(frameToEvict);
-      if (img) {
-        img.onload = null;
-        img.onerror = null;
-        img.src = ''; // Release bitmap from memory
-      }
-      cache.delete(frameToEvict);
+      cache.delete(keys[i]);
     }
   }, []);
 
-  // Safe deduplicated frame loader
-  const loadFrame = useCallback((frameNumber: number, priority: boolean = false): Promise<HTMLImageElement | null> => {
-    if (frameNumber < 1 || frameNumber > TOTAL_FRAMES) return Promise.resolve(null);
-    if (framesCache.current.has(frameNumber)) {
-      return Promise.resolve(framesCache.current.get(frameNumber)!);
-    }
-    if (loadingFrames.current.has(frameNumber)) {
-      return Promise.resolve(null);
-    }
-
-    loadingFrames.current.add(frameNumber);
-
-    return new Promise((resolve) => {
-      const img = new Image();
-      if (priority && 'fetchPriority' in img) {
-        (img as HTMLImageElement & { fetchPriority: string }).fetchPriority = 'high';
+  // Safe deduplicated asynchronous frame loader
+  const loadFrame = useCallback(
+    (frameNumber: number, priority: boolean = false): Promise<HTMLImageElement | null> => {
+      if (frameNumber < 1 || frameNumber > TOTAL_FRAMES) return Promise.resolve(null);
+      if (framesCache.current.has(frameNumber)) {
+        return Promise.resolve(framesCache.current.get(frameNumber)!);
+      }
+      if (loadingFrames.current.has(frameNumber)) {
+        return Promise.resolve(null);
       }
 
-      let resolved = false;
-      const finalize = (success: boolean) => {
-        if (resolved) return;
-        resolved = true;
-        loadingFrames.current.delete(frameNumber);
-        if (success) {
-          framesCache.current.set(frameNumber, img);
-          resolve(img);
-        } else {
-          resolve(null);
+      loadingFrames.current.add(frameNumber);
+
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.decoding = 'async';
+
+        if (priority && 'fetchPriority' in img) {
+          (img as HTMLImageElement & { fetchPriority: string }).fetchPriority = 'high';
         }
-      };
 
-      img.onload = () => finalize(true);
-      img.onerror = () => finalize(false);
-      img.src = `/hero/${frameNumber}.jpg`;
+        let isResolved = false;
+        const finalize = (success: boolean) => {
+          if (isResolved) return;
+          isResolved = true;
+          loadingFrames.current.delete(frameNumber);
 
-      // Trigger asynchronous decode if supported
-      if (typeof img.decode === 'function') {
-        img.decode().then(() => finalize(true)).catch(() => {
-          // Handled by img.onload / img.onerror fallback
-        });
+          if (success && img.naturalWidth > 0) {
+            framesCache.current.set(frameNumber, img);
+            resolve(img);
+
+            // Reactive draw: If the user is waiting on this exact target frame, paint immediately
+            if (targetFrameRef.current === frameNumber && canvasRef.current) {
+              const canvas = canvasRef.current;
+              const ctx = canvas.getContext('2d', { alpha: false });
+              if (ctx && coverDimsRef.current.renderWidth > 0) {
+                const { renderWidth, renderHeight, offsetX, offsetY } = coverDimsRef.current;
+                ctx.drawImage(img, offsetX, offsetY, renderWidth, renderHeight);
+                lastDrawnFrameRef.current = frameNumber;
+              }
+            }
+          } else {
+            resolve(null);
+          }
+        };
+
+        img.onload = () => {
+          if (typeof img.decode === 'function') {
+            img.decode().then(() => finalize(true)).catch(() => finalize(true));
+          } else {
+            finalize(true);
+          }
+        };
+        img.onerror = () => finalize(false);
+        img.src = `/hero/${frameNumber}.jpg`;
+      });
+    },
+    []
+  );
+
+  // Velocity-aware directional streaming preloader
+  const preloadSurroundingFrames = useCallback(
+    (centerFrame: number) => {
+      const isDown = scrollDirectionRef.current >= 0;
+      const isFast = scrollVelocityRef.current > 1.5; // High velocity scroll fling
+      
+      const lookAhead = isMobileRef.current ? (isFast ? 12 : 8) : (isFast ? 18 : 14);
+      const lookBehind = isMobileRef.current ? 3 : 5;
+      const stride = isFast ? 2 : 1; // Sample frames sparsely during fast flings to avoid network saturation
+
+      if (isDown) {
+        for (let i = 1; i <= lookAhead; i += stride) {
+          const target = centerFrame + i;
+          if (target <= TOTAL_FRAMES && !framesCache.current.has(target)) {
+            loadFrame(target, i <= 2);
+          }
+        }
+        for (let i = -1; i >= -lookBehind; i--) {
+          const target = centerFrame + i;
+          if (target >= 1 && !framesCache.current.has(target)) {
+            loadFrame(target, false);
+          }
+        }
+      } else {
+        for (let i = -1; i >= -lookAhead; i -= stride) {
+          const target = centerFrame + i;
+          if (target >= 1 && !framesCache.current.has(target)) {
+            loadFrame(target, Math.abs(i) <= 2);
+          }
+        }
+        for (let i = 1; i <= lookBehind; i++) {
+          const target = centerFrame + i;
+          if (target <= TOTAL_FRAMES && !framesCache.current.has(target)) {
+            loadFrame(target, false);
+          }
+        }
       }
-    });
-  }, []);
 
-  // Directional streaming preloader (prioritizes upcoming frames in the direction of scroll)
-  const preloadSurroundingFrames = useCallback((centerFrame: number) => {
-    const isDown = scrollDirectionRef.current >= 0;
-    const lookAhead = isMobileRef.current ? 12 : 18;
-    const lookBehind = isMobileRef.current ? 3 : 6;
-
-    const targets: number[] = [];
-    if (isDown) {
-      for (let i = 1; i <= lookAhead; i++) targets.push(centerFrame + i);
-      for (let i = -1; i >= -lookBehind; i--) targets.push(centerFrame + i);
-    } else {
-      for (let i = -1; i >= -lookAhead; i--) targets.push(centerFrame + i);
-      for (let i = 1; i <= lookBehind; i++) targets.push(centerFrame + i);
-    }
-
-    targets.forEach((target, idx) => {
-      if (target >= 1 && target <= TOTAL_FRAMES && !framesCache.current.has(target)) {
-        loadFrame(target, idx <= 2);
-      }
-    });
-
-    pruneCache(centerFrame);
-  }, [loadFrame, pruneCache]);
+      pruneCache(centerFrame);
+    },
+    [loadFrame, pruneCache]
+  );
 
   // Recalculate cover fit dimensions when canvas changes
   const updateCoverDimensions = useCallback((width: number, height: number) => {
@@ -172,17 +204,17 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     };
   }, []);
 
-  // Direct, zero-overhead canvas draw for exact frame
+  // Direct, zero-overhead canvas draw for exact frame or nearest loaded neighbor
   const drawFrame = useCallback((frameNum: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
-    // Retrieve requested frame or nearest available neighbor within +/- 20 frames
+    // Retrieve requested frame or nearest available neighbor within +/- 30 frames
     let imgToDraw: HTMLImageElement | undefined = framesCache.current.get(frameNum);
     if (!imgToDraw) {
-      for (let distance = 1; distance <= 20; distance++) {
+      for (let distance = 1; distance <= 30; distance++) {
         const prev = frameNum - distance;
         const next = frameNum + distance;
         if (prev >= 1 && framesCache.current.has(prev)) {
@@ -205,7 +237,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     lastDrawnFrameRef.current = frameNum;
   }, []);
 
-  // HiDPI Retina Canvas Resizing with layout caching
+  // Optimized Canvas Resizing with GPU fill-rate capping
   const updateLayoutAndCanvas = useCallback(() => {
     const container = containerRef.current;
     const canvas = canvasRef.current;
@@ -217,8 +249,8 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     const containerHeight = container.offsetHeight || window.innerHeight * 3.8;
     scrollableDistanceRef.current = Math.max(1, containerHeight - window.innerHeight);
 
-    // Optimized DPR: 1.5x on mobile, 2.0x on desktop for optimal GPU fill rate
-    const maxDpr = isMobileRef.current ? 1.5 : 2.0;
+    // DPR Cap: 1.0x on mobile, 1.5x on desktop for optimal GPU fill rate and 60fps smoothness
+    const maxDpr = isMobileRef.current ? 1.0 : 1.5;
     const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
 
     const clientWidth = window.innerWidth;
@@ -230,11 +262,11 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
       canvas.width = pixelWidth;
       canvas.height = pixelHeight;
-      
+
       const ctx = canvas.getContext('2d', { alpha: false });
       if (ctx) {
         ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'medium'; // Fast bilinear scaling for high frame rates
+        ctx.imageSmoothingQuality = 'medium';
       }
 
       updateCoverDimensions(pixelWidth, pixelHeight);
@@ -242,7 +274,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     }
   }, [drawFrame, updateCoverDimensions]);
 
-  // Initial streaming bootstrap: Frame 1 immediately, then immediate buffer
+  // Initial streaming bootstrap: Frame 1 immediately, then startup buffer
   useEffect(() => {
     let isMounted = true;
 
@@ -258,23 +290,50 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
         }
       }
 
-      // 2. Buffer immediate startup frames (2 to 15)
-      const startupBuffer = Array.from({ length: 14 }, (_, i) => i + 2);
+      // 2. Buffer startup frames (2 to 12)
+      const startupBuffer = Array.from({ length: 11 }, (_, i) => i + 2);
       await Promise.all(startupBuffer.map((f) => loadFrame(f, true)));
 
-      // 3. Progressively load background chunks with idle yields
-      for (let f = 16; f <= (isMobileRef.current ? 45 : 80); f += 4) {
-        if (!isMounted) break;
-        const chunk = [];
-        for (let j = 0; j < 4 && f + j <= TOTAL_FRAMES; j++) {
-          if (!framesCache.current.has(f + j)) {
-            chunk.push(loadFrame(f + j, false));
+      // 3. Low-priority idle background prefetcher (only when user is NOT scrolling)
+      let currentBackgroundFrame = 13;
+      const loadNextIdleChunk = () => {
+        if (!isMounted || currentBackgroundFrame > (isMobileRef.current ? 65 : 110)) return;
+
+        // If user is currently scrolling, yield immediately
+        if (isUserScrollingRef.current) {
+          setTimeout(loadNextIdleChunk, 350);
+          return;
+        }
+
+        const chunk: Promise<HTMLImageElement | null>[] = [];
+        for (let j = 0; j < 3 && currentBackgroundFrame <= TOTAL_FRAMES; j++) {
+          if (!framesCache.current.has(currentBackgroundFrame)) {
+            chunk.push(loadFrame(currentBackgroundFrame, false));
           }
+          currentBackgroundFrame++;
         }
+
         if (chunk.length > 0) {
-          await Promise.all(chunk);
+          Promise.all(chunk).then(() => {
+            if ('requestIdleCallback' in window) {
+              (window as Window & { requestIdleCallback: (cb: () => void) => number }).requestIdleCallback(
+                loadNextIdleChunk
+              );
+            } else {
+              setTimeout(loadNextIdleChunk, 60);
+            }
+          });
+        } else {
+          setTimeout(loadNextIdleChunk, 60);
         }
-        await new Promise((r) => setTimeout(r, 40));
+      };
+
+      if ('requestIdleCallback' in window) {
+        (window as Window & { requestIdleCallback: (cb: () => void) => number }).requestIdleCallback(
+          loadNextIdleChunk
+        );
+      } else {
+        setTimeout(loadNextIdleChunk, 100);
       }
     };
 
@@ -285,24 +344,40 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
     };
   }, [loadFrame, updateLayoutAndCanvas, drawFrame, onInitialFramesReady]);
 
-  // Direct 1:1 Scroll-Coupled Render Handler (Zero lerp lag, Zero timer, Zero work when idle)
+  // Direct 1:1 Scroll-Coupled Render Handler (Zero React state updates, native refresh rate)
   useEffect(() => {
     const handleScroll = () => {
+      const now = performance.now();
+      const currentScrollY = window.scrollY;
+      const timeDelta = Math.max(1, now - lastScrollTimeRef.current);
+      const scrollDelta = Math.abs(currentScrollY - lastScrollYRef.current);
+      scrollVelocityRef.current = scrollDelta / timeDelta;
+      lastScrollTimeRef.current = now;
+
+      isUserScrollingRef.current = true;
+      if (scrollIdleTimeoutRef.current) {
+        clearTimeout(scrollIdleTimeoutRef.current);
+      }
+      scrollIdleTimeoutRef.current = setTimeout(() => {
+        isUserScrollingRef.current = false;
+        scrollVelocityRef.current = 0;
+      }, 250);
+
       if (scrollRafIdRef.current !== null) return;
 
-      // Consolidate scroll events to browser animation frame (60Hz / 90Hz / 120Hz native refresh rate)
+      // Consolidate scroll events to native display refresh rate
       scrollRafIdRef.current = requestAnimationFrame(() => {
         scrollRafIdRef.current = null;
 
-        const currentScrollY = window.scrollY;
-        scrollDirectionRef.current = currentScrollY >= lastScrollYRef.current ? 1 : -1;
-        lastScrollYRef.current = currentScrollY;
+        const latestScrollY = window.scrollY;
+        scrollDirectionRef.current = latestScrollY >= lastScrollYRef.current ? 1 : -1;
+        lastScrollYRef.current = latestScrollY;
 
         const scrollableDistance = scrollableDistanceRef.current;
         if (scrollableDistance <= 0) return;
 
         // Direct normalized scroll progress (0.0 to 1.0)
-        const progress = Math.max(0, Math.min(1, currentScrollY / scrollableDistance));
+        const progress = Math.max(0, Math.min(1, latestScrollY / scrollableDistance));
 
         // Update floating scroll indicator directly via DOM ref without React re-renders
         const shouldShowIndicator = progress <= 0.005;
@@ -351,6 +426,9 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
       if (scrollRafIdRef.current !== null) {
         cancelAnimationFrame(scrollRafIdRef.current);
       }
+      if (scrollIdleTimeoutRef.current) {
+        clearTimeout(scrollIdleTimeoutRef.current);
+      }
     };
   }, [drawFrame, preloadSurroundingFrames, updateLayoutAndCanvas]);
 
@@ -364,7 +442,7 @@ export default function HeroSequence({ onInitialFramesReady }: HeroSequenceProps
         backgroundColor: 'var(--color-cream)',
       }}
     >
-      {/* Sticky Canvas Viewport */}
+      {/* Sticky Canvas Viewport with isolated layout containment */}
       <div className="hero-sticky-viewport">
         <canvas
           ref={canvasRef}

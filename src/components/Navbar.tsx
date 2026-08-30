@@ -13,10 +13,10 @@ export default function Navbar() {
   const isScrolledRef = useRef(false);
   const activeSectionRef = useRef('#hero');
 
-  // Optimized scroll listener using rAF batching and cached section queries
+  // Optimized scroll listener with cached section offsets (Zero getBoundingClientRect thrashing)
   useEffect(() => {
     let rafId: number | null = null;
-    let cachedSections: { id: string; el: HTMLElement }[] = [];
+    let cachedSections: { id: string; top: number }[] = [];
 
     const updateSectionsCache = () => {
       const trackedIds = ['#hero', '#story', '#catalogue', '#celebrations', '#location', '#enquiry'];
@@ -25,9 +25,16 @@ export default function Navbar() {
           const el = id === '#story' 
             ? (document.getElementById('story') || document.getElementById('about'))
             : document.getElementById(id.replace('#', ''));
-          return el ? { id, el } : null;
+          if (!el) return null;
+          let offsetTop = 0;
+          let curr: HTMLElement | null = el;
+          while (curr) {
+            offsetTop += curr.offsetTop;
+            curr = curr.offsetParent as HTMLElement | null;
+          }
+          return { id, top: offsetTop };
         })
-        .filter((item): item is { id: string; el: HTMLElement } => item !== null);
+        .filter((item): item is { id: string; top: number } => item !== null);
     };
 
     updateSectionsCache();
@@ -60,18 +67,16 @@ export default function Navbar() {
         return;
       }
 
-      // If sections cache is empty, rebuild it
       if (cachedSections.length === 0) {
         updateSectionsCache();
       }
 
-      const targetY = 180;
+      const targetY = currentScrollY + 200;
       let newActive = '#hero';
 
       for (let i = cachedSections.length - 1; i >= 0; i--) {
         const item = cachedSections[i];
-        const top = item.el.getBoundingClientRect().top;
-        if (top <= targetY) {
+        if (item.top <= targetY) {
           newActive = item.id;
           break;
         }

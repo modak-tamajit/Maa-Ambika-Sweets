@@ -303,6 +303,9 @@ section[id] {
   justify-content: center;
   background-color: var(--color-cream);
   overflow: hidden;
+  will-change: transform;
+  transform: translateZ(0);
+  contain: layout paint;
 }
 
 /* Accessibility focus styles */

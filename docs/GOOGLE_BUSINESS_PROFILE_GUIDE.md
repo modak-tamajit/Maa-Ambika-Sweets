@@ -16,7 +16,7 @@ Google ranks local businesses highest when information across the website, Googl
 | **Primary Category** | `Sweet Shop` (or `Indian Sweet Shop` / `Bakery`) |
 | **Address** | `Boinchi - Kalna Rd, Rameswarpur, Kalna, Purba Bardhaman, West Bengal 713409` |
 | **Phone Number** | `+91 98005 75051` |
-| **Website URL** | `https://maa-ambika-sweets.vercel.app` (or custom domain) |
+| **Website URL** | `https://www.maaambikasweets.live` |
 | **Opening Hours** | `Monday – Sunday: 8:00 AM – 10:00 PM` |
 
 ---
@@ -57,10 +57,10 @@ Reviews are the single largest ranking factor for the Google Maps "Local 3-Pack"
 After publishing changes to your production hosting:
 
 1. Open [Google Search Console](https://search.google.com/search-console).
-2. Add your property (`https://maa-ambika-sweets.vercel.app`).
+2. Add your property (`https://www.maaambikasweets.live`).
 3. Click **Verify** (the verification meta tag `<meta name="google-site-verification" content="nqPa8PHljVi-i-sfRz0MqVm5XO5LaxZ12ydQN4lJ-aA" />` is already live in the `<head>` of the site).
 4. Go to **Sitemaps** $\rightarrow$ Enter `sitemap.xml` $\rightarrow$ Click **Submit**.
-5. Use **URL Inspection** on `https://maa-ambika-sweets.vercel.app/` $\rightarrow$ Click **Request Indexing**.
+5. Use **URL Inspection** on `https://www.maaambikasweets.live/` $\rightarrow$ Click **Request Indexing**.
 6. Monitor queries under **Performance** for:
    - *"Maa Ambika Sweets"*
    - *"Maa Ambika Sweets Kalna"*

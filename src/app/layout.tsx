@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   description: BUSINESS.seo.description,
   metadataBase: new URL(BUSINESS.seo.canonical),
   alternates: {
-    canonical: '/',
+    canonical: BUSINESS.seo.canonical,
   },
   icons: {
     icon: [
@@ -53,17 +53,28 @@ export const metadata: Metadata = {
   verification: {
     google: 'nqPa8PHljVi-i-sfRz0MqVm5XO5LaxZ12ydQN4lJ-aA',
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   openGraph: {
     title: BUSINESS.seo.title,
     description: BUSINESS.seo.description,
-    url: BUSINESS.seo.canonical,
-    siteName: `${BUSINESS.name.english} (${BUSINESS.name.bengali})`,
+    url: `${BUSINESS.seo.canonical}/`,
+    siteName: BUSINESS.name.english,
     images: [
       {
         url: '/brand/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: `${BUSINESS.name.english} - Authentic Bengali Sweets in Kalna`,
+        alt: 'Maa Ambika Sweets — Authentic Bengali Sweets in Kalna, West Bengal',
       },
     ],
     locale: 'en_IN',
